@@ -23,10 +23,11 @@ def main() -> None:
             stream = container.streams.video[0]
             for frame in container.decode(stream):
                 frame_ndarray = frame.to_ndarray(format="rgb24")
-                frame_tensor = torch.from_numpy(frame_ndarray).to("cuda:0")
+                frame_tensor = torch.from_numpy(frame_ndarray).to("cuda:0", non_blocking=True)
                 if i == 0 and frame.time == 0:
                     img = cv2.cvtColor(frame_ndarray, cv2.COLOR_RGB2BGR)
                     cv2.imwrite(str(OUT_DIR / "cpu.png"), img)
+            torch.cuda.synchronize()
     cpu_elapsed = time.perf_counter() - cpu_start_time
     print(f"CPU decoding took {cpu_elapsed:.2f}s")
 
