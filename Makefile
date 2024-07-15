@@ -17,4 +17,4 @@ clean:
 	- find av_hw -name '*.so' -delete
 	- rm -rf build
 	- rm -rf sandbox
-	- rm -rf src
+

@@ -19,7 +19,7 @@ def get_include_dirs():
     # Get libav libraries
     try:
         raw_cflags = subprocess.check_output(
-            ["pkg-config", "--cflags", "--libs"] + ["lib" + name for name in FFMPEG_LIBRARIES]
+            ["pkg-config", "--cflags", "--libs"] + ["lib" + name for name in FFMPEG_LIBRARIES]  # noqa: S603
         )
     except subprocess.CalledProcessError as e:
         raise RuntimeError(
@@ -54,14 +54,15 @@ for filepath in Path("av_hw").glob("**/*.pyx"):
             library_dirs=extension_extras.library_dirs,
             sources=[str(filepath)],
         ),
-        build_dir="src",
+        build_dir="build",
         include_path=[av.get_include()],
     )
 
 print(ext_modules)
 setup(
     name="av_hw",
+    version="0.1.0",
     packages=find_packages(exclude=["build*"]),
     ext_modules=ext_modules,
-    install_requires=["av", "torch"],  # TODO: move to toml
+    install_requires=["av", "torch"],  # TODO: move to pyproject.toml
 )
