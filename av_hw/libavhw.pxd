@@ -30,21 +30,3 @@ cdef extern from "libavcodec/avcodec.h" nogil:
         
     cdef struct AVCodecContext:   
         AVBufferRef *hw_device_ctx
-
-
-cdef extern from "cuda.h" nogil:
-    ctypedef unsigned long long CUdeviceptr_v2
-    ctypedef CUdeviceptr_v2 CUdeviceptr
-
-
-cdef extern from "driver_types.h" nogil:
-    cdef enum cudaMemcpyKind:
-        cudaMemcpyHostToHost = 0
-        cudaMemcpyHostToDevice = 1
-        cudaMemcpyDeviceToHost = 2
-        cudaMemcpyDeviceToDevice = 3
-        cudaMemcpyDefault = 4
-
-
-cdef extern from "cuda_runtime.h" nogil:
-    cdef int cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)

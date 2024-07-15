@@ -9,8 +9,8 @@ def video_frame_to_tensor(frame: VideoFrame) -> torch.Tensor:
     avframe = frame.ptr
     cdef int height = avframe.height
     cdef int width = avframe.width
-    tensor = torch.empty((height, width, 3), dtype=torch.uint8, device="cuda:0")
-    cdef libavhw.CUdeviceptr tensor_ptr = tensor.data_ptr()
+    tensor = torch.empty((height, width, 3), dtype=torch.uint8, device="cuda:0").contiguous()
+    cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
     with nogil:
         # ret = libavhw.cudaMemcpy2D(
         #     <void*> (<libavhw.CUdeviceptr> nv12_ptr),
@@ -30,5 +30,14 @@ def video_frame_to_tensor(frame: VideoFrame) -> torch.Tensor:
         #     height // 2,
         #     libavhw.cudaMemcpyKind.cudaMemcpyDeviceToDevice
         # )
-        cuda.nv12_to_rgb(<uint8_t*> avframe.data[0], <uint8_t*>avframe.data[1], <uint8_t*>tensor_ptr, height, width)
+        err =  cuda.nv12_to_rgb(
+            <uint8_t*> avframe.data[0],
+            <uint8_t*>avframe.data[1],
+            <uint8_t*>tensor_ptr,
+            height,
+            width,
+            avframe.linesize[0],
+        )
+        if err != cuda.cudaSuccess:
+            raise RuntimeError(f"Failed to decode CUDA frame: {cuda.cudaGetErrorString(err).decode('utf-8')}.")
     return tensor
