@@ -6,12 +6,17 @@ from pathlib import Path
 import av
 from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
+from setuptools.command.build_ext import build_ext as _build_ext
 
 FFMPEG_LIBRARIES = [
     "avcodec",
     "avutil",
 ]
 CUDA_HOME = os.environ.get("CUDA_HOME", None)
+if not CUDA_HOME:
+    raise ValueError("Couldn't find cuda path. Please set $CUDA_HOME env variable.")
+NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc")
+CUDA_ARCH = os.environ.get("CUDA_ARCH", "sm_75")
 
 
 def get_include_dirs():
@@ -30,18 +35,43 @@ def get_include_dirs():
     parser.add_argument("-I", dest="include_dirs", action="append", default=[])
     parser.add_argument("-l", dest="libraries", action="append", default=[])
     parser.add_argument("-L", dest="library_dirs", action="append", default=[])
+    parser.add_argument("-R", dest="runtime_library_dirs", action="append", default=[])
     args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
 
     # Get CUDA libraries
-    if CUDA_HOME is None:
-        raise ValueError("Couldn't find cuda path. Pleae set $CUDA_HOME env variable.")
     args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
     args.libraries.extend(["cudart"])
     args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
+    args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
     return args
 
 
+class CustomBuildExt(_build_ext):
+    def build_extensions(self):
+        # Add support for .cu files compilation
+        self.compiler.src_extensions.append(".cu")
+        default_compile = self.compiler._compile
+
+        # Redefine _compile to change compiler based on the source extension
+        def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
+            default_compiler_so = self.compiler.compiler_so
+            if Path(src).suffix == ".cu":
+                self.compiler.set_executable("compiler_so", NVCC_PATH)
+                self.compiler.set_executable("compiler_cxx", NVCC_PATH)
+                self.compiler.set_executable("compiler", NVCC_PATH)
+                postargs = extra_postargs["nvcc"]
+            else:
+                postargs = extra_postargs["gcc"]
+            default_compile(obj, src, ext, cc_args, postargs, pp_opts)
+            self.compiler.compiler_so = default_compiler_so
+
+        self.compiler._compile = _compile
+        super().build_extensions()
+
+
 extension_extras = get_include_dirs()
+
+cuda_filepaths = [str(path) for path in Path("av_hw/cuda").glob("**/*.cu")]
 
 ext_modules = []
 for filepath in Path("av_hw").glob("**/*.pyx"):
@@ -49,20 +79,25 @@ for filepath in Path("av_hw").glob("**/*.pyx"):
     ext_modules += cythonize(
         Extension(
             module_name,
-            include_dirs=extension_extras.include_dirs,
+            include_dirs=["av_hw"] + extension_extras.include_dirs,
             libraries=extension_extras.libraries,
             library_dirs=extension_extras.library_dirs,
-            sources=[str(filepath)],
+            runtime_library_dirs=extension_extras.runtime_library_dirs,
+            sources=[str(filepath), *cuda_filepaths],
+            extra_compile_args={
+                "gcc": [],
+                "nvcc": [f"-arch={CUDA_ARCH}", "--ptxas-options=-v", "-c", "--compiler-options", "'-fPIC'"],
+            },
         ),
         build_dir="build",
         include_path=[av.get_include()],
     )
 
-print(ext_modules)
 setup(
     name="av_hw",
     version="0.1.0",
     packages=find_packages(exclude=["build*"]),
     ext_modules=ext_modules,
+    cmdclass={"build_ext": CustomBuildExt},
     install_requires=["av", "torch"],  # TODO: move to pyproject.toml
 )

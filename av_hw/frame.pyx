@@ -1,32 +1,34 @@
-import torch
-from av.video.frame cimport VideoFrame
+from libc.stdint cimport uint8_t
 
-from av_hw cimport libavhw
+from av.video.frame cimport VideoFrame
+import torch
+
+from av_hw cimport libavhw, cuda
 
 def video_frame_to_tensor(frame: VideoFrame) -> torch.Tensor:
     avframe = frame.ptr
-    cdef size_t height = avframe.height
-    cdef size_t width = avframe.width
-    cdef size_t uv_offset = width * height
-    nv12 = torch.empty((height + height // 2, width), dtype=torch.uint8, device="cuda:0")
-    cdef libavhw.CUdeviceptr nv12_ptr = nv12.data_ptr()
+    cdef int height = avframe.height
+    cdef int width = avframe.width
+    tensor = torch.empty((height, width, 3), dtype=torch.uint8, device="cuda:0")
+    cdef libavhw.CUdeviceptr tensor_ptr = tensor.data_ptr()
     with nogil:
-        ret = libavhw.cudaMemcpy2D(
-            <void*> (<libavhw.CUdeviceptr> nv12_ptr),
-            width,
-            <const void*> (<libavhw.CUdeviceptr> avframe.data[0]),
-            avframe.linesize[0],
-            width,
-            height,
-            libavhw.cudaMemcpyKind.cudaMemcpyDeviceToDevice
-        )
-        ret = libavhw.cudaMemcpy2D(
-            <void*> (<libavhw.CUdeviceptr> nv12_ptr + uv_offset),
-            width,
-            <const void*> (<libavhw.CUdeviceptr> avframe.data[1]),
-            avframe.linesize[1],
-            width,
-            height // 2,
-            libavhw.cudaMemcpyKind.cudaMemcpyDeviceToDevice
-        )
-    return nv12
+        # ret = libavhw.cudaMemcpy2D(
+        #     <void*> (<libavhw.CUdeviceptr> nv12_ptr),
+        #     width,
+        #     <const void*> (<libavhw.CUdeviceptr> avframe.data[0]),
+        #     avframe.linesize[0],
+        #     width,
+        #     height,
+        #     libavhw.cudaMemcpyKind.cudaMemcpyDeviceToDevice
+        # )
+        # ret = libavhw.cudaMemcpy2D(
+        #     <void*> (<libavhw.CUdeviceptr> nv12_ptr + uv_offset),
+        #     width,
+        #     <const void*> (<libavhw.CUdeviceptr> avframe.data[1]),
+        #     avframe.linesize[1],
+        #     width,
+        #     height // 2,
+        #     libavhw.cudaMemcpyKind.cudaMemcpyDeviceToDevice
+        # )
+        cuda.nv12_to_rgb(<uint8_t*> avframe.data[0], <uint8_t*>avframe.data[1], <uint8_t*>tensor_ptr, height, width)
+    return tensor

@@ -21,14 +21,11 @@ def main() -> None:
                     print("Format:", frame.format)
                     frame_tensor = av_hw.video_frame_to_tensor(frame)
                     print("Frame shape:", frame_tensor.shape, frame_tensor.device)
-                    im = cv2.cvtColor(frame_tensor.cpu().numpy(), cv2.COLOR_YUV2BGR_NV12)
+                    im = cv2.cvtColor(frame_tensor.cpu().numpy(), cv2.COLOR_RGB2BGR)
                     print("Img shape:", im.shape)
                     cv2.imwrite("/home/cerrion/test.png", im)
                 else:
                     frame_tensor = av_hw.video_frame_to_tensor(frame)
-                # print()
-        # for frame in container.decode(stream):
-        #     print(frame.time)
     print("Done")
 
 
