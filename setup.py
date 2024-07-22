@@ -8,15 +8,16 @@ from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext as _build_ext
 
-FFMPEG_LIBRARIES = [
-    "avcodec",
-    "avutil",
-]
 CUDA_HOME = os.environ.get("CUDA_HOME", None)
 if not CUDA_HOME:
     raise ValueError("Couldn't find cuda path. Please set $CUDA_HOME env variable.")
 NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc")
 CUDA_ARCH = os.environ.get("CUDA_ARCH", "sm_75")
+
+FFMPEG_LIBRARIES = [
+    "avcodec",
+    "avutil",
+]
 
 
 def get_include_dirs():
@@ -94,10 +95,7 @@ for filepath in Path("av_hw").glob("**/*.pyx"):
     )
 
 setup(
-    name="av_hw",
-    version="0.1.0",
     packages=find_packages(exclude=["build*"]),
     ext_modules=ext_modules,
     cmdclass={"build_ext": CustomBuildExt},
-    install_requires=["av", "torch"],  # TODO: move to pyproject.toml
 )

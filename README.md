@@ -1,4 +1,4 @@
-# PyAV-HW
+# PyAV-hw
 Extension of [PyAV](https://github.com/PyAV-Org/PyAV) with hardware decoding support.
 
 ## Installation
@@ -19,7 +19,7 @@ Extension of [PyAV](https://github.com/PyAV-Org/PyAV) with hardware decoding sup
 
 - Install PyAV-HW:
     ```sh
-    pip install pyav_hw
+    PKG_CONFIG_LIBDIR="/opt/ffmpeg/lib/pkgconfig" pip install pyav_hw
     ```
 
 - To test the installation, run `python examples/benchmark.py`.
