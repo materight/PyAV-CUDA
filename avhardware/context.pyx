@@ -17,7 +17,6 @@ cdef class HWDeviceContext:
         self.ptr = NULL
         self.device = device
 
-    def __enter__(self):
         cdef err = libavhw.av_hwdevice_ctx_create(
             &self.ptr,
             libavhw.AV_HWDEVICE_TYPE_CUDA,
@@ -27,11 +26,16 @@ cdef class HWDeviceContext:
         )
         if err < 0:
             raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")
+
+    def close(self):
+        if self.ptr:
+            libavhw.av_buffer_unref(&self.ptr)
+
+    def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if self.ptr:
-            libavhw.av_buffer_unref(&self.ptr)
+        self.close()
 
     def attach(self, CodecContext codec_context):
         (<AVCodecContext*> codec_context.ptr).hw_device_ctx = libavhw.av_buffer_ref(self.ptr)
