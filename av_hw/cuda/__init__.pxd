@@ -22,7 +22,8 @@ cdef extern from "driver_types.h" nogil:
 
 
 cdef extern from "cuda_runtime.h" nogil:
-    cdef int cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)
+    cdef cudaError_t cudaMemcpy2D(void* dst, size_t dpitch, const void* src, size_t spitch, size_t width, size_t height, cudaMemcpyKind kind)
+    cdef cudaError_t cudaFree(void* devPtr)
 
 
 # Custom CUDA kernels

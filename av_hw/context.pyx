@@ -33,10 +33,8 @@ cdef class HWDeviceContext:
         if self.ptr:
             libavhw.av_buffer_unref(&self.ptr)
 
-    
     def attach(self, CodecContext codec_context):
         (<AVCodecContext*> codec_context.ptr).hw_device_ctx = libavhw.av_buffer_ref(self.ptr)
-
 
     def to_tensor(self, frame: VideoFrame) -> torch.Tensor:
         tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', self.device))
