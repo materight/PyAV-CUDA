@@ -1,6 +1,6 @@
 [project]
 name = "avhardware"
-version = "0.1.3"
+version = "0.1.4"
 description = "PyAV extension with hardware decoding support."
 authors = [{name = "Matteo Destro"}]
 readme = "README.md"
