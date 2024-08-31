@@ -6,7 +6,7 @@ on:
     - "v*.*.*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -29,16 +29,15 @@ jobs:
       run: make dist
 
     - name: Publish package
-      uses: pypa/gh-action-pypi-publish@release/v1.9
+      uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
 
     - name: Create Github release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: dist/*
-        token: ${{ secrets.GITHUB_TOKEN }}
         body: |
           # PyPI ${GITHUB_REF#refs/tags/}
         draft: false
