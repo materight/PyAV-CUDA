@@ -1,4 +1,5 @@
 # PyAV-Hardware
+[![PyPI version](https://img.shields.io/pypi/v/avhardware)](https://pypi.org/project/avhardware/)
 
 **PyAV-Hardware** is an extension of [PyAV](https://github.com/PyAV-Org/PyAV) that adds support for hardware-accelerated video decoding using Nvidia GPUs. It integrates with FFmpeg and PyTorch, providing CUDA-accelerated kernels for efficient color space conversion.
 

@@ -1,0 +1,45 @@
+name: Publish new package version
+
+on:
+  push:
+    tags:
+    - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+
+    - name: Build package
+      run: make dist
+
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@release/v1.9
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
+    - name: Create Github release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/*
+        token: ${{ secrets.GITHUB_TOKEN }}
+        body: |
+          # PyPI ${GITHUB_REF#refs/tags/}
+        draft: false
+        prerelease: false
