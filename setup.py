@@ -10,7 +10,7 @@ from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext as _build_ext
 
 CUDA_HOME = os.environ.get("CUDA_HOME", None)
-NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc")
+NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc") if CUDA_HOME else None
 CUDA_ARCH = os.environ.get("CUDA_ARCH", "sm_75")
 
 FFMPEG_LIBRARIES = [
@@ -55,6 +55,9 @@ def get_include_dirs():
 
 class CustomBuildExt(_build_ext):
     def build_extensions(self):
+        if not NVCC_PATH:
+            raise ValueError("Couldn't find nvcc compiler. Please set $CUDA_HOME env variable.")
+
         # Add support for .cu files compilation
         self.compiler.src_extensions.append(".cu")
         default_compile = self.compiler._compile
