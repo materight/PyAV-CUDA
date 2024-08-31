@@ -1,13 +1,56 @@
 cimport libav
+from libc.stdint cimport uint8_t
+from av.video.frame cimport VideoFrame
 from av.codec.context cimport CodecContext
+import torch
 
-from av_hw cimport libavhw
+from av_hw cimport libavhw, cuda
+from av_hw.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext
 
 
-def hwdevice_ctx_create(codec_context: CodecContext):
-    cdef libavhw.AVHWDeviceType hw_device_type = libavhw.AVHWDeviceType.AV_HWDEVICE_TYPE_CUDA
-    cdef libavhw.AVBufferRef *hw_device_ctx = NULL
-    cdef err = libavhw.av_hwdevice_ctx_create(&hw_device_ctx, hw_device_type, NULL, NULL, 0)
-    if err < 0:
-        raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")
-    (<libavhw.AVCodecContext*> codec_context.ptr).hw_device_ctx = libavhw.av_buffer_ref(hw_device_ctx)
+cdef class HWDeviceContext:
+
+    cdef AVBufferRef* ptr
+    cdef int device
+
+    def __cinit__(self, int device):
+        self.ptr = NULL
+        self.device = device
+
+    def __enter__(self):
+        cdef err = libavhw.av_hwdevice_ctx_create(
+            &self.ptr,
+            libavhw.AV_HWDEVICE_TYPE_CUDA,
+            str(self.device).encode(),
+            NULL,
+            0
+        )
+        if err < 0:
+            raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.ptr:
+            libavhw.av_buffer_unref(&self.ptr)
+
+    
+    def attach(self, CodecContext codec_context):
+        (<AVCodecContext*> codec_context.ptr).hw_device_ctx = libavhw.av_buffer_ref(self.ptr)
+
+
+    def to_tensor(self, frame: VideoFrame) -> torch.Tensor:
+        tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', self.device))
+        cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
+        with nogil:
+            err =  cuda.nv12_to_rgb(
+                <uint8_t*> frame.ptr.data[0],
+                <uint8_t*> frame.ptr.data[1],
+                <uint8_t*> tensor_ptr,
+                frame.ptr.height,
+                frame.ptr.width,
+                frame.ptr.linesize[0],
+                (frame.ptr.color_range == libav.AVCOL_RANGE_JPEG), # Use full color range for yuvj420p format
+            )
+            if err != cuda.cudaSuccess:
+                raise RuntimeError(f"Failed to decode CUDA frame: {cuda.cudaGetErrorString(err).decode('utf-8')}.")
+        return tensor

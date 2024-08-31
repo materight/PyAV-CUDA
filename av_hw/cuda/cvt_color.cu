@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 
 
-__global__ void cuda_nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch) {
+__global__ void cuda_nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch, int full_color_range) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -32,11 +32,11 @@ __global__ void cuda_nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb
 
 // Host function to launch the CUDA kernel
 extern "C" {
-    cudaError_t nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch) {
+    cudaError_t nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch, int full_color_range) {
         dim3 block(16, 16);
         dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
 
-        cuda_nv12_to_rgb<<<grid, block>>>(in_y, in_uv, out_rgb, height, width, pitch);
+        cuda_nv12_to_rgb<<<grid, block>>>(in_y, in_uv, out_rgb, height, width, pitch, full_color_range);
 
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess) return err;
