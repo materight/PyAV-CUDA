@@ -1,0 +1,3 @@
+include *.md
+recursive-include avhardware *.pyx *.pxd
+recursive-include avhardware *.h *.cu

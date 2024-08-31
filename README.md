@@ -19,7 +19,7 @@
 
 3. Install PyAV-Hardware:
     ```bash
-    PKG_CONFIG_LIBDIR="/opt/ffmpeg/lib/pkgconfig" pip install avhwardware
+    PKG_CONFIG_LIBDIR="/opt/ffmpeg/lib/pkgconfig" CUDA_HOME="/usr/local/cuda" pip install avhwardware
     ```
 
 4. Test the installation by running `python examples/benchmark.py`. The output should show something like:
