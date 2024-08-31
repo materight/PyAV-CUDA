@@ -27,29 +27,27 @@ def get_include_dirs():
     parser.add_argument("-L", dest="library_dirs", action="append", default=[])
     parser.add_argument("-R", dest="runtime_library_dirs", action="append", default=[])
 
-    # Don't search for external libraries when building a source distribution
-    if "sdist" in sys.argv:
-        return parser.parse_args([])
-
     # Get libav libraries
     try:
         raw_cflags = subprocess.check_output(
             ["pkg-config", "--cflags", "--libs"] + ["lib" + name for name in FFMPEG_LIBRARIES]  # noqa: S603
         )
+        args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(
-            f"Couldn't find ffmpeg libs {FFMPEG_LIBRARIES}: {e.stderr}. "
-            "Try specifying the ffmpeg dir with `export PKG_CONFIG_LIBDIR=[ffmpeg_dir]/lib/pkgconfig`"
-        ) from e
-    args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
+        print(
+            f"WARNING: Couldn't find ffmpeg libs {FFMPEG_LIBRARIES}: {e}. "
+            "Try specifying the ffmpeg dir with `export PKG_CONFIG_LIBDIR=<ffmpeg_dir>/lib/pkgconfig`"
+        )
+        args = parser.parse_args([])
 
     # Get CUDA libraries
     if not CUDA_HOME:
-        raise ValueError("Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
-    args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
-    args.libraries.extend(["cudart"])
-    args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
-    args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
+        print("WARNING: Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
+    else:
+        args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
+        args.libraries.extend(["cudart"])
+        args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
+        args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
     return args
 
 
