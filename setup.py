@@ -13,6 +13,7 @@ CUDA_HOME = os.environ.get("CUDA_HOME", None)
 NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc") if CUDA_HOME else None
 CUDA_ARCH = os.environ.get("CUDA_ARCH", "sm_75")
 
+SKIP_LIBS_CHECKS = bool(int(os.environ.get("SKIP_LIBS_CHECKS", False)))
 FFMPEG_LIBRARIES = [
     "avcodec",
     "avutil",
@@ -32,22 +33,23 @@ def get_include_dirs():
         raw_cflags = subprocess.check_output(
             ["pkg-config", "--cflags", "--libs"] + ["lib" + name for name in FFMPEG_LIBRARIES]  # noqa: S603
         )
-        args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
     except subprocess.CalledProcessError as e:
-        print(
-            f"WARNING: Couldn't find ffmpeg libs {FFMPEG_LIBRARIES}: {e}. "
-            "Try specifying the ffmpeg dir with `export PKG_CONFIG_LIBDIR=<ffmpeg_dir>/lib/pkgconfig`"
-        )
-        args = parser.parse_args([])
+        raw_cflags = b""
+        if not SKIP_LIBS_CHECKS:
+            raise RuntimeError(
+                f"Couldn't find ffmpeg libs {FFMPEG_LIBRARIES}: {e.stderr}. "
+                "Try specifying the ffmpeg dir with `export PKG_CONFIG_LIBDIR=[ffmpeg_dir]/lib/pkgconfig`"
+            ) from e
+    args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
 
     # Get CUDA libraries
-    if not CUDA_HOME:
-        print("WARNING: Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
-    else:
+    if CUDA_HOME:
         args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
         args.libraries.extend(["cudart"])
         args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
         args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
+    elif not SKIP_LIBS_CHECKS:
+        raise RuntimeError("Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
     return args
 
 
