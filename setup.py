@@ -1,6 +1,7 @@
 import argparse
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import av
@@ -9,8 +10,6 @@ from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext as _build_ext
 
 CUDA_HOME = os.environ.get("CUDA_HOME", None)
-if not CUDA_HOME:
-    raise ValueError("Couldn't find cuda path. Please set $CUDA_HOME env variable.")
 NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc")
 CUDA_ARCH = os.environ.get("CUDA_ARCH", "sm_75")
 
@@ -22,6 +21,16 @@ FFMPEG_LIBRARIES = [
 
 def get_include_dirs():
     """Get distutils-compatible extension arguments using pkg-config for libav and cuda."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-I", dest="include_dirs", action="append", default=[])
+    parser.add_argument("-l", dest="libraries", action="append", default=[])
+    parser.add_argument("-L", dest="library_dirs", action="append", default=[])
+    parser.add_argument("-R", dest="runtime_library_dirs", action="append", default=[])
+
+    # Don't search for external libraries when building a source distribution
+    if "sdist" in sys.argv:
+        return parser.parse_args([])
+
     # Get libav libraries
     try:
         raw_cflags = subprocess.check_output(
@@ -32,14 +41,11 @@ def get_include_dirs():
             f"Couldn't find ffmpeg libs {FFMPEG_LIBRARIES}: {e.stderr}. "
             "Try specifying the ffmpeg dir with `export PKG_CONFIG_LIBDIR=[ffmpeg_dir]/lib/pkgconfig`"
         ) from e
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("-I", dest="include_dirs", action="append", default=[])
-    parser.add_argument("-l", dest="libraries", action="append", default=[])
-    parser.add_argument("-L", dest="library_dirs", action="append", default=[])
-    parser.add_argument("-R", dest="runtime_library_dirs", action="append", default=[])
     args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
 
     # Get CUDA libraries
+    if not CUDA_HOME:
+        raise ValueError("Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
     args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
     args.libraries.extend(["cudart"])
     args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
