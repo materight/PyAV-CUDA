@@ -72,15 +72,15 @@ class CustomBuildExt(_build_ext):
 
 extension_extras = get_include_dirs()
 
-cuda_filepaths = [str(path) for path in Path("av_hw/cuda").glob("**/*.cu")]
+cuda_filepaths = [str(path) for path in Path("avhardware/cuda").glob("**/*.cu")]
 
 ext_modules = []
-for filepath in Path("av_hw").glob("**/*.pyx"):
+for filepath in Path("avhardware").glob("**/*.pyx"):
     module_name = str(filepath.parent / filepath.stem).replace("/", ".").replace(os.sep, ".")
     ext_modules += cythonize(
         Extension(
             module_name,
-            include_dirs=["av_hw"] + extension_extras.include_dirs,
+            include_dirs=["avhardware"] + extension_extras.include_dirs,
             libraries=extension_extras.libraries,
             library_dirs=extension_extras.library_dirs,
             runtime_library_dirs=extension_extras.runtime_library_dirs,

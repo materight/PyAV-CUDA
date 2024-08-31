@@ -3,7 +3,7 @@ from pathlib import Path
 
 import av
 import av.datasets
-import av_hw
+import avhardware
 import cv2
 import torch
 
@@ -33,13 +33,13 @@ def main() -> None:
                 if i == 0 and frame.time == 0:
                     img = cv2.cvtColor(frame_ndarray, cv2.COLOR_RGB2BGR)
                     cv2.imwrite(str(OUT_DIR / "cpu.png"), img)
-            torch.cuda.synchronize()
+            stream.close()
     cpu_elapsed = time.perf_counter() - cpu_start_time
     print(f"CPU decoding took {cpu_elapsed:.2f}s")
 
     # Test GPU decoding with no copy
     gpu_start_time = time.perf_counter()
-    with av_hw.HWDeviceContext(0) as hwdevice_ctx:
+    with avhardware.HWDeviceContext(0) as hwdevice_ctx:
         for i in range(N_RUNS):
             with av.open(SRC, options=options) as container:
                 stream = container.streams.video[0]
@@ -49,7 +49,7 @@ def main() -> None:
                     if i == 0 and frame_idx == 0:
                         img = cv2.cvtColor(frame_tensor.cpu().numpy(), cv2.COLOR_RGB2BGR)
                         cv2.imwrite(str(OUT_DIR / "gpu.png"), img)
-            torch.cuda.empty_cache()
+                stream.close()
     gpu_elapsed = time.perf_counter() - gpu_start_time
     print(f"GPU decoding took {gpu_elapsed:.2f}s")
 

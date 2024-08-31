@@ -4,8 +4,8 @@ from av.video.frame cimport VideoFrame
 from av.codec.context cimport CodecContext
 import torch
 
-from av_hw cimport libavhw, cuda
-from av_hw.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext
+from avhardware cimport libavhw, cuda
+from avhardware.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext
 
 
 cdef class HWDeviceContext:

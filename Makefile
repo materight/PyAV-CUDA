@@ -10,6 +10,6 @@ build:
 	CFLAGS=$(CFLAGS) LDFLAGS=$(LDFLAGS) $(PYTHON) setup.py build_ext --inplace --debug
 
 clean:
-	- find av_hw -name '*.so' -delete
+	- find avhw -name '*.so' -delete
 	- rm -rf build
 	- rm -rf sandbox

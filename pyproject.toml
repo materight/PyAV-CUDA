@@ -1,5 +1,5 @@
 [project]
-name = "av_hw"
+name = "avhardware"
 version = "0.1.0"
 description = "PyAV extension with hardware decoding support."
 authors = [{name = "Matteo Destro"}]
@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/materight/PyAV-hw.git"
+Repository = "https://github.com/materight/PyAV-Hardware.git"
 
 [build-system]
 requires = ["setuptools", "cython", "av>=2.3.0"]
