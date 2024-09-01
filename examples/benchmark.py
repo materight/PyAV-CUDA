@@ -23,7 +23,7 @@ def main() -> None:
         options["rtsp_transport"] = "tcp"
 
     # Test CPU decoding with copy to GPU
-    print("Running CPU decoding...", end=" ")
+    print("Running CPU decoding...", end=" ", flush=True)
     cpu_start_time = time.perf_counter()
     for i in range(N_RUNS):
         with av.open(INPUT, options=options) as container:
@@ -39,7 +39,7 @@ def main() -> None:
     print(f"took {cpu_elapsed:.2f}s")
 
     # Test GPU decoding with no copy
-    print("Running GPU decoding...", end=" ")
+    print("Running GPU decoding...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
     with avhardware.HWDeviceContext(DEVICE.index) as hwdevice_ctx:
         for i in range(N_RUNS):

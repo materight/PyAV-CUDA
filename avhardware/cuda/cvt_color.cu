@@ -2,7 +2,20 @@
 #include <cuda_runtime.h>
 
 
-__global__ void cuda_nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch, int full_color_range) {
+template<class T>
+__device__ static T clamp(T x, T lower, T upper) {
+    return x < lower ? lower : (x > upper ? upper : x);
+}
+
+template<bool FullColorRange>
+__global__ void cudaNV12ToRGB(
+    uint8_t *in_y,
+    uint8_t *in_uv,
+    uint8_t *out_rgb,
+    int height,
+    int width,
+    int pitch
+) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -15,13 +28,21 @@ __global__ void cuda_nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb
     uint8_t U = in_uv[uv_index];
     uint8_t V = in_uv[uv_index + 1];
 
-    int C = Y - 16;
-    int D = U - 128;
-    int E = V - 128;
+    float fY = (int)Y - 0;
+    float fU = (int)U - 128;
+    float fV = (int)V - 128;
 
-    uint8_t R = min(max((298 * C + 409 * E + 128) >> 8, 0), 255);
-    uint8_t G = min(max((298 * C - 100 * D - 208 * E + 128) >> 8, 0), 255);
-    uint8_t B = min(max((298 * C + 516 * D + 128) >> 8, 0), 255);
+    uint8_t R, G, B;
+    if constexpr (FullColorRange) {
+        R = clamp(1.000f * fY +             + 1.402f * fV, 0.0f, 255.0f);
+        G = clamp(1.000f * fY - 0.344f * fU - 0.714f * fV, 0.0f, 255.0f);
+        B = clamp(1.000f * fY + 1.772f * fU              , 0.0f, 255.0f);
+    } else {
+        fY -= 16;
+        R = clamp(1.164f * fY +             + 1.596f * fV, 0.0f, 255.0f);
+        G = clamp(1.164f * fY - 0.392f * fU - 0.813f * fV, 0.0f, 255.0f);
+        B = clamp(1.164f * fY + 2.017f * fU              , 0.0f, 255.0f);
+    }
 
     int rgb_index = (y * width + x) * 3;
     out_rgb[rgb_index] = R;
@@ -32,11 +53,15 @@ __global__ void cuda_nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb
 
 // Host function to launch the CUDA kernel
 extern "C" {
-    cudaError_t nv12_to_rgb(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch, int full_color_range) {
+    cudaError_t NV12ToRGB(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch, bool full_color_range) {
         dim3 block(16, 16);
         dim3 grid((width + block.x - 1) / block.x, (height + block.y - 1) / block.y);
 
-        cuda_nv12_to_rgb<<<grid, block>>>(in_y, in_uv, out_rgb, height, width, pitch, full_color_range);
+        if (full_color_range) {
+            cudaNV12ToRGB<true><<<grid, block>>>(in_y, in_uv, out_rgb, height, width, pitch);
+        } else {
+            cudaNV12ToRGB<false><<<grid, block>>>(in_y, in_uv, out_rgb, height, width, pitch);
+        }
 
         cudaError_t err = cudaGetLastError();
         if (err != cudaSuccess) return err;

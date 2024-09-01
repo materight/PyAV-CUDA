@@ -1,7 +1,6 @@
 import argparse
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 import av
@@ -96,7 +95,14 @@ for filepath in Path("avhardware").glob("**/*.pyx"):
             sources=[str(filepath), *cuda_filepaths],
             extra_compile_args={
                 "gcc": [],
-                "nvcc": [f"-arch={CUDA_ARCH}", "--ptxas-options=-v", "-c", "--compiler-options", "'-fPIC'"],
+                "nvcc": [
+                    f"-arch={CUDA_ARCH}",
+                    "-std=c++17",
+                    "--ptxas-options=-v",
+                    "-c",
+                    "--compiler-options",
+                    "'-fPIC'",
+                ],
             },
         ),
         build_dir="build",

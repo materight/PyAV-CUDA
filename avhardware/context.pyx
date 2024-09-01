@@ -44,7 +44,7 @@ cdef class HWDeviceContext:
         tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', self.device))
         cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
         with nogil:
-            err =  cuda.nv12_to_rgb(
+            err =  cuda.NV12ToRGB(
                 <uint8_t*> frame.ptr.data[0],
                 <uint8_t*> frame.ptr.data[1],
                 <uint8_t*> tensor_ptr,
