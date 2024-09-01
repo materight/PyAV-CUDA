@@ -9,8 +9,7 @@ from setuptools import Extension, find_packages, setup
 from setuptools.command.build_ext import build_ext as _build_ext
 
 CUDA_HOME = os.environ.get("CUDA_HOME", None)
-NVCC_PATH = str(Path(CUDA_HOME) / "bin" / "nvcc") if CUDA_HOME else None
-CUDA_ARCH = os.environ.get("CUDA_ARCH", "sm_75")
+CUDA_ARCH_LIST = os.environ.get("CUDA_ARCH_LIST", "75,86")
 
 SKIP_LIBS_CHECKS = bool(int(os.environ.get("SKIP_LIBS_CHECKS", False)))
 FFMPEG_LIBRARIES = [
@@ -54,8 +53,9 @@ def get_include_dirs():
 
 class CustomBuildExt(_build_ext):
     def build_extensions(self):
-        if not NVCC_PATH:
+        if not CUDA_HOME:
             raise ValueError("Couldn't find nvcc compiler. Please set $CUDA_HOME env variable.")
+        nvcc_path = str(Path(CUDA_HOME) / "bin" / "nvcc")
 
         # Add support for .cu files compilation
         self.compiler.src_extensions.append(".cu")
@@ -65,9 +65,9 @@ class CustomBuildExt(_build_ext):
         def _compile(obj, src, ext, cc_args, extra_postargs, pp_opts):
             default_compiler_so = self.compiler.compiler_so
             if Path(src).suffix == ".cu":
-                self.compiler.set_executable("compiler_so", NVCC_PATH)
-                self.compiler.set_executable("compiler_cxx", NVCC_PATH)
-                self.compiler.set_executable("compiler", NVCC_PATH)
+                self.compiler.set_executable("compiler_so", nvcc_path)
+                self.compiler.set_executable("compiler_cxx", nvcc_path)
+                self.compiler.set_executable("compiler", nvcc_path)
                 postargs = extra_postargs["nvcc"]
             else:
                 postargs = extra_postargs["gcc"]
@@ -81,6 +81,8 @@ class CustomBuildExt(_build_ext):
 extension_extras = get_include_dirs()
 
 cuda_filepaths = [str(path) for path in Path("avhardware/cuda").glob("**/*.cu")]
+cuda_arch_flags = [f for arch in CUDA_ARCH_LIST.split(",") for f in ["-gencode", f"arch=compute_{arch},code=sm_{arch}"]]
+cuda_arch_flags.extend(["-gencode", "arch=compute_86,code=compute_86"])  # Add fallback for newer architectures
 
 ext_modules = []
 for filepath in Path("avhardware").glob("**/*.pyx"):
@@ -95,14 +97,7 @@ for filepath in Path("avhardware").glob("**/*.pyx"):
             sources=[str(filepath), *cuda_filepaths],
             extra_compile_args={
                 "gcc": [],
-                "nvcc": [
-                    f"-arch={CUDA_ARCH}",
-                    "-std=c++17",
-                    "--ptxas-options=-v",
-                    "-c",
-                    "--compiler-options",
-                    "'-fPIC'",
-                ],
+                "nvcc": ["-c", *cuda_arch_flags, "-std=c++17", "--ptxas-options=-v", "--compiler-options", "'-fPIC'"],
             },
         ),
         build_dir="build",
