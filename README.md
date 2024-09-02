@@ -1,5 +1,5 @@
-# PyAV-Hardware
-[![PyPI version](https://img.shields.io/pypi/v/avhardware)](https://pypi.org/project/avhardware/)
+# PyAV-CUDA
+[![PyPI version](https://img.shields.io/pypi/v/avcuda)](https://pypi.org/project/avcuda/)
 
 **PyAV-Hardware** is an extension of [PyAV](https://github.com/PyAV-Org/PyAV) that adds support for hardware-accelerated video decoding using Nvidia GPUs. It integrates with FFmpeg and PyTorch, providing CUDA-accelerated kernels for efficient color space conversion.
 
@@ -18,9 +18,9 @@
     print(av.codecs_available)
     ```
 
-3. Install PyAV-Hardware:
+3. Install PyAV-CUDA:
     ```bash
-    PKG_CONFIG_LIBDIR="/opt/ffmpeg/lib/pkgconfig" CUDA_HOME="/usr/local/cuda" pip install avhwardware
+    PKG_CONFIG_LIBDIR="/opt/ffmpeg/lib/pkgconfig" CUDA_HOME="/usr/local/cuda" pip install avcuda
     ```
 
 4. Test the installation by running `python examples/benchmark.py`. The output should show something like:
@@ -36,13 +36,13 @@ To use hardware decoding, instantiate an `HWDeviceContext` and attach it to a `V
 
 ```python
 import av
-import avhardware
+import avcuda
 
 CUDA_DEVICE = 0
 
 with (
     av.open("video.mp4") as container,
-    avhardware.HWDeviceContext(CUDA_DEVICE) as hwdevice_ctx,
+    avcuda.HWDeviceContext(CUDA_DEVICE) as hwdevice_ctx,
 ):
         stream = container.streams.video[0]
         hwdevice_ctx.attach(stream.codec_context)

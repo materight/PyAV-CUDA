@@ -1,7 +1,7 @@
 [project]
-name = "avhardware"
-version = "0.1.6"
-description = "PyAV extension with hardware decoding support."
+name = "avcuda"
+version = "0.1.7"
+description = "PyAV extension with hardware decoding support on Nvidia GPUs."
 authors = [{name = "Matteo Destro"}]
 readme = "README.md"
 dependencies = [

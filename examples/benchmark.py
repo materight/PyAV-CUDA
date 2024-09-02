@@ -3,7 +3,7 @@ from pathlib import Path
 
 import av
 import av.datasets
-import avhardware
+import avcuda
 import cv2
 import torch
 
@@ -41,7 +41,7 @@ def main() -> None:
     # Test GPU decoding with no copy
     print("Running GPU decoding...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
-    with avhardware.HWDeviceContext(DEVICE.index) as hwdevice_ctx:
+    with avcuda.HWDeviceContext(DEVICE.index) as hwdevice_ctx:
         for i in range(N_RUNS):
             with av.open(INPUT, options=options) as container:
                 stream = container.streams.video[0]

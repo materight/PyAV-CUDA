@@ -80,17 +80,17 @@ class CustomBuildExt(_build_ext):
 
 extension_extras = get_include_dirs()
 
-cuda_filepaths = [str(path) for path in Path("avhardware/cuda").glob("**/*.cu")]
+cuda_filepaths = [str(path) for path in Path("avcuda/cuda").glob("**/*.cu")]
 cuda_arch_flags = [f for arch in CUDA_ARCH_LIST.split(",") for f in ["-gencode", f"arch=compute_{arch},code=sm_{arch}"]]
 cuda_arch_flags.extend(["-gencode", "arch=compute_86,code=compute_86"])  # Add fallback for newer architectures
 
 ext_modules = []
-for filepath in Path("avhardware").glob("**/*.pyx"):
+for filepath in Path("avcuda").glob("**/*.pyx"):
     module_name = str(filepath.parent / filepath.stem).replace("/", ".").replace(os.sep, ".")
     ext_modules += cythonize(
         Extension(
             module_name,
-            include_dirs=["avhardware"] + extension_extras.include_dirs,
+            include_dirs=["avcuda"] + extension_extras.include_dirs,
             libraries=extension_extras.libraries,
             library_dirs=extension_extras.library_dirs,
             runtime_library_dirs=extension_extras.runtime_library_dirs,

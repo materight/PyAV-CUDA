@@ -17,6 +17,6 @@ publish:
 	$(PYTHON) -m twine upload dist/*
 
 clean:
-	- find avhardware -name '*.so' -delete
+	- find avcuda -name '*.so' -delete
 	- rm -rf build
 	- rm -rf sandbox
