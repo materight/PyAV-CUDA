@@ -46,8 +46,9 @@ cdef extern from "libavutil/hwcontext.h" nogil:
 
     cdef int av_hwdevice_ctx_create(AVBufferRef **device_ctx, AVHWDeviceType type, const char *device, libav.AVDictionary *opts, int flags)
     cdef AVBufferRef* av_hwframe_ctx_alloc(AVBufferRef *device_ctx)
-    cdef int av_hwframe_ctx_init(AVBufferRef *ref)	
-    cdef int av_hwframe_get_buffer(AVBufferRef* hwframe_ctx, libav.AVFrame *frame, int flags)	
+    cdef int av_hwframe_ctx_init(AVBufferRef *ref)
+    cdef int av_hwframe_get_buffer(AVBufferRef* hwframe_ctx, libav.AVFrame *frame, int flags)
+    cdef int av_frame_get_buffer(libav.AVFrame *frame, int flags)
 
 
 cdef extern from "libavcodec/avcodec.h" nogil:

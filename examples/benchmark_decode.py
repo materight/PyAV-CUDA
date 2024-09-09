@@ -8,14 +8,13 @@ import cv2
 import torch
 
 INPUT = av.datasets.curated("pexels/time-lapse-video-of-sunset-by-the-sea-854400.mp4")
-OUT_DIR = Path(__file__).parent / "out"
+OUT_DIR = Path(__file__).parent / "out" / "decode"
 DEVICE = torch.device("cuda", index=0)
 N_RUNS = 10
 
 
 def main() -> None:
     OUT_DIR.mkdir(exist_ok=True, parents=True)
-    frame: av.VideoFrame
 
     options = {}
     if INPUT.startswith("rtsp://"):
@@ -51,7 +50,7 @@ def main() -> None:
             with av.open(INPUT, options=options) as container:
                 stream = container.streams.video[0]
 
-                hwdevice_ctx.attach(stream.codec_context)
+                hwdevice_ctx.attach_decoder(stream.codec_context)
 
                 for frame_idx, frame in enumerate(container.decode(stream)):
                     frame_tensor = hwdevice_ctx.to_tensor(frame)
