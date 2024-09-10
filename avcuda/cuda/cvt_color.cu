@@ -10,7 +10,7 @@ __device__ static T clamp(T x, T lower, T upper) {
 
 
 template<bool FullColorRange>
-__global__ void nv12_to_rgb_kernel(
+__global__ void NV12ToRGB_kernel(
     uint8_t *inY,
     uint8_t *inUV,
     uint8_t *outRGB,
@@ -53,7 +53,7 @@ __global__ void nv12_to_rgb_kernel(
 }
 
 
-__global__ void rgb_to_nv12_kernel(
+__global__ void RGBToNV12_kernel(
     uint8_t *inRGB,
     uint8_t *outY,
     uint8_t *outUV,
@@ -106,9 +106,9 @@ extern "C" {
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
         if (fullColorRange) {
-            nv12_to_rgb_kernel<true><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitch);
+            NV12ToRGB_kernel<true><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitch);
         } else {
-            nv12_to_rgb_kernel<false><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitch);
+            NV12ToRGB_kernel<false><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitch);
         }
 
         return checkCudaErrorAndSync();
@@ -118,7 +118,7 @@ extern "C" {
         dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE / 4);
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
-        rgb_to_nv12_kernel<<<gridSize, blockSize>>>(inRGB, outY, outUV, height, width, pitch);
+        RGBToNV12_kernel<<<gridSize, blockSize>>>(inRGB, outY, outUV, height, width, pitch);
 
         return checkCudaErrorAndSync();
     }
