@@ -4,7 +4,6 @@ from pathlib import Path
 import av
 import av.datasets
 import avcuda
-import cv2
 import torch
 from av.video.frame import VideoFrame
 
@@ -49,7 +48,7 @@ def main() -> None:
 
     with avcuda.HWDeviceContext(DEVICE.index) as hwdevice_ctx:
         for _ in range(N_RUNS):
-            with av.open(OUT_DIR / "cpu.mp4", "w") as container:
+            with av.open(OUT_DIR / "gpu.mp4", "w") as container:
                 stream = container.add_stream("h264_nvenc", rate=FPS)
                 stream.pix_fmt = "yuv420p"
                 stream.width = frames_cpu[0].shape[1]
@@ -64,12 +63,6 @@ def main() -> None:
 
     gpu_elapsed = time.perf_counter() - gpu_start_time
     print(f"took {gpu_elapsed:.2f}s")
-
-    # Test difference in decoded images
-    cpu_frame = cv2.imread(str(OUT_DIR / "cpu.png"))
-    gpu_frame = cv2.imread(str(OUT_DIR / "gpu.png"))
-    diff = cv2.absdiff(cpu_frame, gpu_frame)
-    print(f"Max diff in px values between CPU and GPU decoded frames: {diff.max()}")
 
 
 if __name__ == "__main__":

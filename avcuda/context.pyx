@@ -2,9 +2,8 @@ cimport libav
 from libc.stdint cimport uint8_t
 from av.video.frame cimport VideoFrame
 from av.codec.context cimport CodecContext
+from av.video.format cimport get_video_format
 import torch
-
-from libc.stdio cimport printf
 
 from avcuda cimport libavhw, cuda
 from avcuda.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext, AVHWFramesContext
@@ -64,6 +63,9 @@ cdef class HWDeviceContext:
         if err < 0:
             raise RuntimeError(f"Failed to initialize CUDA frame context. {libav.av_err2str(err).decode('utf-8')}.")
 
+        codec_context.pix_fmt = "cuda"
+
+
     def to_tensor(self, frame: VideoFrame) -> torch.Tensor:
         tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', self.device))
         cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
@@ -90,14 +92,10 @@ cdef class HWDeviceContext:
             frame.ptr = libav.av_frame_alloc()
             frame.ptr.height = height
             frame.ptr.width = width
-            frame.ptr.pts = 0
             frame.ptr.format = libavhw.AV_PIX_FMT_CUDA
             err = libavhw.av_hwframe_get_buffer((<AVCodecContext*> codec_context.ptr).hw_frames_ctx, frame.ptr, 0)
             if err < 0:
                 raise RuntimeError(f"Failed to allocate CUDA frame: {libav.av_err2str(err).decode('utf-8')}.")
-            printf("%d\n", frame.ptr.height)
-            printf("%d\n", frame.ptr.width)
-            #printf("%d\n", frame.ptr.linesize[0])
 
             err_cuda = cuda.RGBToNV12(
                 <uint8_t*> tensor_ptr,
@@ -109,4 +107,5 @@ cdef class HWDeviceContext:
             )
             if err != cuda.cudaSuccess:
                 raise RuntimeError(f"Failed to encode CUDA frame: {cuda.cudaGetErrorString(err_cuda).decode('utf-8')}.")
+        frame._init_user_attributes() # Update frame's internal attributes
         return frame
