@@ -21,26 +21,6 @@ def main() -> None:
         options["flags"] = "+low_delay"
         options["rtsp_transport"] = "tcp"
 
-    # Test CPU decoding with copy to GPU
-    print("Running CPU decoding...", end=" ", flush=True)
-    cpu_start_time = time.perf_counter()
-
-    for i in range(N_RUNS):
-        with av.open(INPUT, options=options) as container:
-            stream = container.streams.video[0]
-
-            for frame_idx, frame in enumerate(container.decode(stream)):
-                frame_ndarray = frame.to_ndarray(format="rgb24")
-                frame_tensor = torch.from_numpy(frame_ndarray).to(DEVICE)
-
-                if i == 0 and frame_idx == 0:
-                    img = cv2.cvtColor(frame_ndarray, cv2.COLOR_RGB2BGR)
-                    cv2.imwrite(str(OUT_DIR / "cpu.png"), img)
-            stream.close()
-
-    cpu_elapsed = time.perf_counter() - cpu_start_time
-    print(f"took {cpu_elapsed:.2f}s")
-
     # Test GPU decoding with no copy
     print("Running GPU decoding...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
@@ -62,6 +42,26 @@ def main() -> None:
 
     gpu_elapsed = time.perf_counter() - gpu_start_time
     print(f"took {gpu_elapsed:.2f}s")
+
+    # Test CPU decoding with copy to GPU
+    print("Running CPU decoding...", end=" ", flush=True)
+    cpu_start_time = time.perf_counter()
+
+    for i in range(N_RUNS):
+        with av.open(INPUT, options=options) as container:
+            stream = container.streams.video[0]
+
+            for frame_idx, frame in enumerate(container.decode(stream)):
+                frame_ndarray = frame.to_ndarray(format="rgb24")
+                frame_tensor = torch.from_numpy(frame_ndarray).to(DEVICE)
+
+                if i == 0 and frame_idx == 0:
+                    img = cv2.cvtColor(frame_ndarray, cv2.COLOR_RGB2BGR)
+                    cv2.imwrite(str(OUT_DIR / "cpu.png"), img)
+            stream.close()
+
+    cpu_elapsed = time.perf_counter() - cpu_start_time
+    print(f"took {cpu_elapsed:.2f}s")
 
     # Test difference in decoded images
     cpu_frame = cv2.imread(str(OUT_DIR / "cpu.png"))
