@@ -26,18 +26,18 @@ def main() -> None:
     print("Running CPU encoding...", end=" ", flush=True)
     cpu_start_time = time.perf_counter()
 
-    # for _ in range(N_RUNS):
-    #     with av.open(OUT_DIR / "cpu.mp4", "w") as container:
-    #         stream = container.add_stream("libx264", rate=FPS)
-    #         stream.pix_fmt = "yuv420p"
-    #         stream.width = frames_cpu[0].shape[1]
-    #         stream.height = frames_cpu[0].shape[0]
+    for _ in range(N_RUNS):
+        with av.open(OUT_DIR / "cpu.mp4", "w") as container:
+            stream = container.add_stream("libx264", rate=FPS)
+            stream.pix_fmt = "yuv420p"
+            stream.width = frames_cpu[0].shape[1]
+            stream.height = frames_cpu[0].shape[0]
 
-    #         for frame in frames_cpu:
-    #             avframe = VideoFrame.from_ndarray(frame, format="rgb24")
-    #             for packet in stream.encode(avframe):
-    #                 container.mux(packet)
-    #         stream.close()
+            for frame in frames_cpu:
+                avframe = VideoFrame.from_ndarray(frame, format="rgb24")
+                for packet in stream.encode(avframe):
+                    container.mux(packet)
+            stream.close()
 
     cpu_elapsed = time.perf_counter() - cpu_start_time
     print(f"took {cpu_elapsed:.2f}s")

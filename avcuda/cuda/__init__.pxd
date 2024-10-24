@@ -29,4 +29,4 @@ cdef extern from "cuda_runtime.h" nogil:
 # Custom CUDA kernels
 cdef extern from "cuda/cvt_color.h" nogil:
     cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, int fullColorRange)
-    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outUV, int height, int width, int pitchY, int pitchUV)
+    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outU, uint8_t *outV, int height, int width, int pitchY, int pitchUV)

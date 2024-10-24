@@ -102,6 +102,7 @@ cdef class HWDeviceContext:
                 <uint8_t*> tensor_ptr,
                 <uint8_t*> frame.ptr.data[0],
                 <uint8_t*> frame.ptr.data[1],
+                <uint8_t*> frame.ptr.data[2],
                 frame.ptr.height,
                 frame.ptr.width,
                 frame.ptr.linesize[0],
