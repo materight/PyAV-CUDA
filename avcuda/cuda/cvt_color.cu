@@ -16,15 +16,16 @@ __global__ void NV12ToRGB_kernel(
     uint8_t *outRGB,
     int height,
     int width,
-    int pitch
+    int pitchY,
+    int pitchUV
 ) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x >= width || y >= height) return;
 
-    int yIdx = y * pitch + x;
-    int uvIdx = (y / 2) * pitch + (x / 2) * 2;
+    int yIdx = y * pitchY + x;
+    int uvIdx = (y / 2) * pitchUV + (x / 2) * 2;
 
     uint8_t Y = inY[yIdx];
     uint8_t U = inUV[uvIdx];
@@ -59,7 +60,8 @@ __global__ void RGBToNV12_kernel(
     uint8_t *outUV,
     int height,
     int width,
-    int pitch
+    int pitchY,
+    int pitchUV
 ) {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -73,14 +75,14 @@ __global__ void RGBToNV12_kernel(
 
     uint8_t Y = clamp(0.257f * R + 0.504f * G + 0.098f * B + 16.0f, 0.0f, 255.0f);
 
-    int yIdx = y * pitch + x;
+    int yIdx = y * pitchY + x;
     outY[yIdx] = Y;
 
     if ((x % 2 == 0) && (y % 2 == 0)) {
         uint8_t U = clamp(-0.148f * R - 0.291f * G + 0.439f * B + 128.0f, 0.0f, 255.0f);
         uint8_t V = clamp( 0.439f * R - 0.368f * G - 0.071f * B + 128.0f, 0.0f, 255.0f);
 
-        int uvIdx = (y / 2) * pitch + (x / 2) * 2;
+        int uvIdx = (y / 2) * pitchUV + (x / 2) * 2;
         outUV[uvIdx] = U;
         outUV[uvIdx + 1] = V;
     }
@@ -101,24 +103,24 @@ cudaError_t checkCudaErrorAndSync() {
 
 
 extern "C" {
-    cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitch, bool fullColorRange) {
+    cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, bool fullColorRange) {
         dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE);
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
         if (fullColorRange) {
-            NV12ToRGB_kernel<true><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitch);
+            NV12ToRGB_kernel<true><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitchY, pitchUV);
         } else {
-            NV12ToRGB_kernel<false><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitch);
+            NV12ToRGB_kernel<false><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitchY, pitchUV);
         }
 
         return checkCudaErrorAndSync();
     }
 
-    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outUV, int height, int width, int pitch) {
+    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outUV, int height, int width, int pitchY, int pitchUV) {
         dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE / 4);
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
-        RGBToNV12_kernel<<<gridSize, blockSize>>>(inRGB, outY, outUV, height, width, pitch);
+        RGBToNV12_kernel<<<gridSize, blockSize>>>(inRGB, outY, outUV, height, width, pitchY, pitchUV);
 
         return checkCudaErrorAndSync();
     }

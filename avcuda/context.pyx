@@ -77,6 +77,7 @@ cdef class HWDeviceContext:
                 frame.ptr.height,
                 frame.ptr.width,
                 frame.ptr.linesize[0],
+                frame.ptr.linesize[1],
                 (frame.ptr.color_range == libav.AVCOL_RANGE_JPEG), # Use full color range for yuvj420p format
             )
             if err != cuda.cudaSuccess:
@@ -103,7 +104,8 @@ cdef class HWDeviceContext:
                 <uint8_t*> frame.ptr.data[1],
                 frame.ptr.height,
                 frame.ptr.width,
-                frame.ptr.width,
+                frame.ptr.linesize[0],
+                frame.ptr.linesize[1],
             )
             if err != cuda.cudaSuccess:
                 raise RuntimeError(f"Failed to encode CUDA frame: {cuda.cudaGetErrorString(err_cuda).decode('utf-8')}.")
