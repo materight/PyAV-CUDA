@@ -98,35 +98,26 @@ inline int divCeil(int num, int den) {
     return (num + (den - 1)) / den;
 }
 
-cudaError_t checkCudaErrorAndSync() {
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) return err;
-    err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) return err;
-    return cudaSuccess;
-}
-
-
 extern "C" {
-    cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, bool fullColorRange) {
+    cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, bool fullColorRange, cudaStream_t stream) {
         dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE);
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
         if (fullColorRange) {
-            NV12ToRGB_kernel<true><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitchY, pitchUV);
+            NV12ToRGB_kernel<true><<<gridSize, blockSize0, 0, stream>>>(inY, inUV, outRGB, height, width, pitchY, pitchUV);
         } else {
-            NV12ToRGB_kernel<false><<<gridSize, blockSize>>>(inY, inUV, outRGB, height, width, pitchY, pitchUV);
+            NV12ToRGB_kernel<false><<<gridSize, blockSize, 0, stream>>>(inY, inUV, outRGB, height, width, pitchY, pitchUV);
         }
 
-        return checkCudaErrorAndSync();
+        return cudaGetLastError();
     }
 
-    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outU, uint8_t *outV, int height, int width, int pitchY, int pitchUV) {
+    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outU, uint8_t *outV, int height, int width, int pitchY, int pitchUV, cudaStream_t stream) {
         dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE);
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
-        RGBToNV12_kernel<<<gridSize, blockSize>>>(inRGB, outY, outU, outV, height, width, pitchY, pitchUV);
+        RGBToNV12_kernel<<<gridSize, blockSiz, 0, stream>>>(inRGB, outY, outU, outV, height, width, pitchY, pitchUV);
 
-        return checkCudaErrorAndSync();
+        return cudaGetLastError();
     }
 }

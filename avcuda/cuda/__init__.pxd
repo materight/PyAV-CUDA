@@ -13,6 +13,8 @@ cdef extern from "driver_types.h" nogil:
 
     cdef const char* cudaGetErrorString(cudaError_t error)
 
+    ctypedef void* cudaStream_t
+
     cdef enum cudaMemcpyKind:
         cudaMemcpyHostToHost = 0
         cudaMemcpyHostToDevice = 1
