@@ -3,9 +3,6 @@
 
 #define BLOCK_SIZE 32
 
-/*
- * Conversion matrices from https://stackoverflow.com/questions/17892346/how-to-convert-rgb-yuv-rgb-both-ways
- */
 
 template<class T>
 __device__ static T clamp(T x, T lower, T upper) {
@@ -125,7 +122,7 @@ extern "C" {
     }
 
     cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outU, uint8_t *outV, int height, int width, int pitchY, int pitchUV) {
-        dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE / 4);
+        dim3 blockSize(BLOCK_SIZE, BLOCK_SIZE);
         dim3 gridSize(divCeil(width, blockSize.x), divCeil(height, blockSize.y));
 
         RGBToNV12_kernel<<<gridSize, blockSize>>>(inRGB, outY, outU, outV, height, width, pitchY, pitchUV);
