@@ -31,7 +31,7 @@ def main() -> None:
             stream.pix_fmt = "yuv420p"
             stream.width = frames_cpu[0].shape[1]
             stream.height = frames_cpu[0].shape[0]
-            avcuda.init_hw_context(stream.codec_context, DEVICE.index)
+            avcuda.init_hwcontext(stream.codec_context, DEVICE.index)
 
             for frame in frames_cpu:
                 frame_tensor = torch.from_numpy(frame).to(DEVICE)

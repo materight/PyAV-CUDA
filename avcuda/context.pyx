@@ -38,7 +38,7 @@ cdef HWDeviceContext get_device_context(int device):
     return device_contexts[device]
 
 
-def init_hw_context(CodecContext codec_context, int device):
+def init_hwcontext(CodecContext codec_context, int device):
     cdef AVBufferRef* hw_device_ctx = get_device_context(device).ptr
 
     cdef AVCodecContext* ctx = <AVCodecContext*> codec_context.ptr
