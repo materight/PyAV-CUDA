@@ -49,6 +49,8 @@ cdef extern from "libavutil/hwcontext.h" nogil:
     cdef int av_hwframe_ctx_init(AVBufferRef *ref)
     cdef int av_hwframe_get_buffer(AVBufferRef* hwframe_ctx, libav.AVFrame *frame, int flags)
 
+
+cdef extern from "libavutil/hwcontext_cuda.h" nogil:
     cdef int AV_CUDA_USE_CURRENT_CONTEXT
 
 

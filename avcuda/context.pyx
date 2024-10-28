@@ -18,12 +18,16 @@ cdef class HWDeviceContext:
         self.ptr = NULL
         self.device = device
 
+        # Since we are re-using the pytorch context, we need to ensure that the CUDA context is initialized
+        torch.cuda.init()
+        torch.cuda.synchronize()
+
         cdef err = libavhw.av_hwdevice_ctx_create(
             &self.ptr,
             libavhw.AV_HWDEVICE_TYPE_CUDA,
             str(self.device).encode(),
             NULL,
-            0
+            libavhw.AV_CUDA_USE_CURRENT_CONTEXT,
         )
         if err < 0:
             raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")
