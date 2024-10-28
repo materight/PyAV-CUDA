@@ -30,7 +30,7 @@ def main() -> None:
             with av.open(INPUT, options=options) as container:
                 stream = container.streams.video[0]
 
-                hwdevice_ctx.attach_decoder(stream.codec_context)
+                hwdevice_ctx.attach(stream.codec_context)
 
                 for frame_idx, frame in enumerate(container.decode(stream)):
                     frame_tensor = hwdevice_ctx.to_tensor(frame)

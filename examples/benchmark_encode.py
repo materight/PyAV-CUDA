@@ -32,7 +32,7 @@ def main() -> None:
                 stream.pix_fmt = "yuv420p"
                 stream.width = frames_cpu[0].shape[1]
                 stream.height = frames_cpu[0].shape[0]
-                hwdevice_ctx.attach_encoder(stream.codec_context)
+                hwdevice_ctx.attach(stream.codec_context)
 
                 for frame in frames_cpu:
                     frame_tensor = torch.from_numpy(frame).to(DEVICE)
