@@ -21,7 +21,7 @@ def main() -> None:
         options["flags"] = "+low_delay"
         options["rtsp_transport"] = "tcp"
 
-    # Test GPU decoding with no copy
+    # Test GPU decoding
     print("Running GPU decoding...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
 
@@ -42,7 +42,7 @@ def main() -> None:
     gpu_elapsed = time.perf_counter() - gpu_start_time
     print(f"took {gpu_elapsed:.2f}s")
 
-    # Test CPU decoding with copy to GPU
+    # Test CPU decoding
     print("Running CPU decoding...", end=" ", flush=True)
     cpu_start_time = time.perf_counter()
 

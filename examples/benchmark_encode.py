@@ -21,12 +21,12 @@ def main() -> None:
         stream = container.streams.video[0]
         frames_cpu = [frame.to_ndarray(format="rgb24") for frame in container.decode(stream)]
 
-    # Test GPU decoding with no copy
+    # Test GPU encoding
     print("Running GPU encoding...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
 
     for _ in range(N_RUNS):
-        with av.open(OUT_DIR / f"gpu.mp4", "w") as container:
+        with av.open(OUT_DIR / "gpu.mp4", "w") as container:
             stream = container.add_stream("h264_nvenc", rate=FPS)
             stream.pix_fmt = "yuv420p"
             stream.width = frames_cpu[0].shape[1]
