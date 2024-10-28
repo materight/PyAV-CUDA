@@ -32,7 +32,7 @@
 
 ## Usage
 
-To use hardware decoding, instantiate an `HWDeviceContext` and attach it to a `VideoStream`. Note that an `HWDeviceContext` can be shared by multiple `VideoStream` instances to save memory.
+### Decoding
 
 ```python
 import av
@@ -40,14 +40,37 @@ import avcuda
 
 CUDA_DEVICE = 0
 
-with (
-    av.open("video.mp4") as container,
-    avcuda.HWDeviceContext(CUDA_DEVICE) as hwdevice_ctx,
-):
-        stream = container.streams.video[0]
-        hwdevice_ctx.attach(stream.codec_context)
+with av.open("video.mp4") as container:
+    stream = container.streams.video[0]
+    avcuda.init_hwcontext(stream.codec_context, CUDA_DEVICE)
 
-        # Convert frames into RGB PyTorch tensors on the same device
-        for frame in container.decode(stream):
-            frame_tensor = hwdevice_ctx.to_tensor(frame)
+    for avframe in container.decode(stream):
+        frame_tensor = avcuda.to_tensor(avframe, CUDA_DEVICE)
+```
+
+### Encoding
+
+```python
+import av
+import avcuda
+
+CUDA_DEVICE = 0
+
+NUM_FRAMES = 100
+FPS = 30
+WIDTH = 640
+HEIGHT = 480
+
+with av.open("video.mp4", "w") as container:
+    stream = container.add_stream("h264_nvenc", rate=FPS)
+    stream.pix_fmt, stream.width, stream.height = "yuv420p", WIDTH, HEIGHT
+
+    avcuda.init_hwcontext(stream.codec_context, CUDA_DEVICE)
+
+    for _ in range(NUM_FRAMES):
+        frame_tensor = torch.randint(0, 255, (HEIGHT, WIDTH, 3), dtype=torch.uint8, device=CUDA_DEVICE)
+        avframe = avcuda.from_tensor(stream.codec_context, frame_tensor) 
+
+        for packet in stream.encode(avframe):
+            container.mux(packet)
 ```

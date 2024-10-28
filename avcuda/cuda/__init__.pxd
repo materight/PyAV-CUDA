@@ -13,6 +13,8 @@ cdef extern from "driver_types.h" nogil:
 
     cdef const char* cudaGetErrorString(cudaError_t error)
 
+    ctypedef void* cudaStream_t
+
     cdef enum cudaMemcpyKind:
         cudaMemcpyHostToHost = 0
         cudaMemcpyHostToDevice = 1
@@ -28,4 +30,5 @@ cdef extern from "cuda_runtime.h" nogil:
 
 # Custom CUDA kernels
 cdef extern from "cuda/cvt_color.h" nogil:
-    cudaError_t NV12ToRGB(uint8_t *in_y, uint8_t *in_uv, uint8_t *out_rgb, int height, int width, int pitch, int full_color_range)
+    cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, int fullColorRange)
+    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outU, uint8_t *outV, int height, int width, int pitchY, int pitchUV)
