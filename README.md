@@ -69,7 +69,7 @@ with av.open("video.mp4", "w") as container:
 
     for _ in range(NUM_FRAMES):
         frame_tensor = torch.randint(0, 255, (HEIGHT, WIDTH, 3), dtype=torch.uint8, device=CUDA_DEVICE)
-        avframe = avcuda.from_tensor(stream.codec_context, frame_tensor) 
+        avframe = avcuda.from_tensor(frame_tensor, stream.codec_context) 
 
         for packet in stream.encode(avframe):
             container.mux(packet)

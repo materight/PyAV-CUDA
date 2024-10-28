@@ -85,7 +85,7 @@ def to_tensor(frame: VideoFrame, device: int) -> torch.Tensor:
     return tensor
 
 
-def from_tensor(CodecContext codec_context, tensor: torch.Tensor) -> VideoFrame:
+def from_tensor(tensor: torch.Tensor, CodecContext codec_context) -> VideoFrame:
     cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
     cdef int height = tensor.shape[0]
     cdef int width = tensor.shape[1]

@@ -35,7 +35,7 @@ def main() -> None:
 
             for frame in frames_cpu:
                 frame_tensor = torch.from_numpy(frame).to(DEVICE)
-                avframe = avcuda.from_tensor(stream.codec_context, frame_tensor)
+                avframe = avcuda.from_tensor(frame_tensor, stream.codec_context)
                 for packet in stream.encode(avframe):
                     container.mux(packet)
             stream.close()
