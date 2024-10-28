@@ -1,6 +1,6 @@
 [project]
 name = "avcuda"
-version = "0.1.7"
+version = "0.2.0"
 description = "PyAV extension with hardware encoding/decoding support on Nvidia GPUs."
 authors = [{name = "Matteo Destro"}]
 readme = "README.md"
