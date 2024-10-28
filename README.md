@@ -23,7 +23,7 @@
     PKG_CONFIG_LIBDIR="/opt/ffmpeg/lib/pkgconfig" CUDA_HOME="/usr/local/cuda" pip install avcuda
     ```
 
-4. Test the installation by running `python examples/benchmark.py`. The output should show something like:
+4. Test the installation by running `python examples/benchmark_decode.py`. The output should show something like:
     ```
     Running CPU decoding... took 34.99s
     Running GPU decoding... took 8.30s
