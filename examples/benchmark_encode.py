@@ -25,21 +25,20 @@ def main() -> None:
     print("Running GPU encoding...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
 
-    with avcuda.HWDeviceContext(DEVICE.index) as hwdevice_ctx:
-        for _ in range(N_RUNS):
-            with av.open(OUT_DIR / "gpu.mp4", "w") as container:
-                stream = container.add_stream("h264_nvenc", rate=FPS)
-                stream.pix_fmt = "yuv420p"
-                stream.width = frames_cpu[0].shape[1]
-                stream.height = frames_cpu[0].shape[0]
-                hwdevice_ctx.attach(stream.codec_context)
+    for _ in range(N_RUNS):
+        with av.open(OUT_DIR / f"gpu.mp4", "w") as container:
+            stream = container.add_stream("h264_nvenc", rate=FPS)
+            stream.pix_fmt = "yuv420p"
+            stream.width = frames_cpu[0].shape[1]
+            stream.height = frames_cpu[0].shape[0]
+            avcuda.init_hw_context(stream.codec_context, DEVICE.index)
 
-                for frame in frames_cpu:
-                    frame_tensor = torch.from_numpy(frame).to(DEVICE)
-                    avframe = hwdevice_ctx.from_tensor(stream.codec_context, frame_tensor)
-                    for packet in stream.encode(avframe):
-                        container.mux(packet)
-                stream.close()
+            for frame in frames_cpu:
+                frame_tensor = torch.from_numpy(frame).to(DEVICE)
+                avframe = avcuda.from_tensor(stream.codec_context, frame_tensor)
+                for packet in stream.encode(avframe):
+                    container.mux(packet)
+            stream.close()
 
     gpu_elapsed = time.perf_counter() - gpu_start_time
     print(f"took {gpu_elapsed:.2f}s")

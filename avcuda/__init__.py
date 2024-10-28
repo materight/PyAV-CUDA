@@ -1,5 +1,7 @@
-from avcuda.context import HWDeviceContext
+from avcuda.context import from_tensor, init_hw_context, to_tensor
 
 __all__ = [
-    "HWDeviceContext",
+    "init_hw_context",
+    "to_tensor",
+    "from_tensor",
 ]
