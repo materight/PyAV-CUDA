@@ -67,6 +67,8 @@ def init_hwcontext(CodecContext codec_context, int device):
 
 
 def to_tensor(frame: VideoFrame, device: int) -> torch.Tensor:
+    if frame.format.name != "cuda":
+        raise ValueError(f"Input frame must be in CUDA format, got {frame.format.name}.")
     tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', device))
     cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
     with nogil:
