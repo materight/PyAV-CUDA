@@ -29,7 +29,7 @@ cdef extern from "cuda_runtime.h" nogil:
 
 
 cdef extern from "npp.h" nogil:
-    cdef enum NppStatus:
+    ctypedef enum NppStatus:
         NPP_NO_ERROR = 0
 
     ctypedef struct NppiSize:

@@ -58,7 +58,7 @@ def init_hwcontext(CodecContext codec_context, int device):
         frames_ctx.sw_format = ctx.sw_pix_fmt
         frames_ctx.width = ctx.width
         frames_ctx.height = ctx.height
-        frames_ctx.initial_pool_size = 3
+        frames_ctx.initial_pool_size = 5
 
         err = libavhw.av_hwframe_ctx_init(ctx.hw_frames_ctx)
         if err < 0:
@@ -82,21 +82,26 @@ def to_tensor(frame: VideoFrame, device: int, pix_fmt: str = "rgb24") -> torch.T
 
     cdef cuda.NppiSize roi = cuda.NppiSize(frame.ptr.width, frame.ptr.height)
 
+    cdef cuda.NppStatus status
     with nogil:
         if pix_fmt == "rgb24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                cuda.nppiNV12ToRGB_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiNV12ToRGB_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
             else:
-                cuda.nppiNV12ToRGB_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiNV12ToRGB_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
         
         elif pix_fmt == "bgr24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                cuda.nppiNV12ToBGR_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiNV12ToBGR_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
             else:
-                cuda.nppiNV12ToBGR_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiNV12ToBGR_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
 
         else:
             raise ValueError(f"Unsupported pixel format: {pix_fmt}.")
+
+    if status != cuda.NPP_NO_ERROR:
+        raise RuntimeError(f"Failed to convert frame to tensor: {status}.")
+
     return tensor
 
 
@@ -123,20 +128,25 @@ def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, pix_fmt: str 
 
     cdef cuda.NppiSize roi = cuda.NppiSize(frame.ptr.width, frame.ptr.height)
 
+    cdef cuda.NppStatus status
     with nogil:
         if pix_fmt == "rgb24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                cuda.nppiRGBToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiRGBToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
             else:
-                cuda.nppiRGBToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiRGBToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
         
         elif pix_fmt == "bgr24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                cuda.nppiBGRToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiBGRToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
             else:
-                cuda.nppiBGRToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiBGRToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
 
         else:
             raise ValueError(f"Unsupported pixel format: {pix_fmt}.")
+
+    if status != cuda.NPP_NO_ERROR:
+        raise RuntimeError(f"Failed to convert tensor to frame: {status}.")
+
     frame._init_user_attributes() # Update frame's internal attributes
     return frame
