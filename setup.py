@@ -43,7 +43,7 @@ def get_include_dirs():
     # Get CUDA libraries
     if CUDA_HOME:
         args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
-        args.libraries.extend(["cudart"])
+        args.libraries.extend(["cudart", "nppicc"])
         args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
         args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
     elif not SKIP_LIBS_CHECKS:

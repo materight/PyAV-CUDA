@@ -28,6 +28,28 @@ cdef extern from "cuda_runtime.h" nogil:
     cdef cudaError_t cudaFree(void* devPtr)
 
 
+cdef extern from "npp.h" nogil:
+    cdef enum NppStatus:
+        NPP_NO_ERROR = 0
+
+    ctypedef struct NppiSize:
+        int width
+        int height
+
+    ctypedef unsigned char Npp8u
+
+    cdef NppStatus nppiNV12ToRGB_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
+    cdef NppStatus nppiNV12ToRGB_709HDTV_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
+    cdef NppStatus nppiNV12ToBGR_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
+    cdef NppStatus nppiNV12ToBGR_709HDTV_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
+
+    cdef NppStatus nppiRGBToYCbCr420_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int rDstStep[3], NppiSize oSizeROI)
+    cdef NppStatus nppiRGBToYCbCr420_JPEG_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int aDstStep[3], NppiSize oSizeROI)
+    cdef NppStatus nppiBGRToYCbCr420_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int rDstStep[3], NppiSize oSizeROI)
+    cdef NppStatus nppiBGRToYCbCr420_JPEG_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int aDstStep[3], NppiSize oSizeROI)
+
+
+
 # Custom CUDA kernels
 cdef extern from "cuda/cvt_color.h" nogil:
     cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, int fullColorRange)
