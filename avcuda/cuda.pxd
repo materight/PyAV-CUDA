@@ -47,10 +47,3 @@ cdef extern from "npp.h" nogil:
     cdef NppStatus nppiRGBToYCbCr420_JPEG_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int aDstStep[3], NppiSize oSizeROI)
     cdef NppStatus nppiBGRToYCbCr420_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int rDstStep[3], NppiSize oSizeROI)
     cdef NppStatus nppiBGRToYCbCr420_JPEG_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int aDstStep[3], NppiSize oSizeROI)
-
-
-
-# Custom CUDA kernels
-cdef extern from "cuda/cvt_color.h" nogil:
-    cudaError_t NV12ToRGB(uint8_t *inY, uint8_t *inUV, uint8_t *outRGB, int height, int width, int pitchY, int pitchUV, int fullColorRange)
-    cudaError_t RGBToNV12(uint8_t *inRGB, uint8_t *outY, uint8_t *outU, uint8_t *outV, int height, int width, int pitchY, int pitchUV)
