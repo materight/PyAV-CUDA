@@ -31,6 +31,7 @@ cdef extern from "cuda_runtime.h" nogil:
 cdef extern from "npp.h" nogil:
     ctypedef enum NppStatus:
         NPP_NO_ERROR = 0
+        NPP_ERROR = -2
 
     ctypedef struct NppiSize:
         int width
