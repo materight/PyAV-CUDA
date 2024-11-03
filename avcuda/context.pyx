@@ -90,12 +90,12 @@ def to_tensor(frame: VideoFrame, device: int, format: str = "rgb24") -> torch.Te
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
                 status = cuda.nppiNV12ToRGB_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
             else:
-                status = cuda.nppiNV12ToRGB_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
-        elif pix_fmt == "bgr24":
+                status = cuda.nppiNV12ToRGB_709CSC_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+        elif format == "bgr24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
                 status = cuda.nppiNV12ToBGR_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
             else:
-                status = cuda.nppiNV12ToBGR_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+                status = cuda.nppiNV12ToBGR_709CSC_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
         else:
             status = cuda.NPP_ERROR
     if status != cuda.NPP_NO_ERROR:

@@ -14,9 +14,9 @@ cdef extern from "npp.h" nogil:
 
     ctypedef unsigned char Npp8u
 
-    cdef NppStatus nppiNV12ToRGB_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
+    cdef NppStatus nppiNV12ToRGB_709CSC_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
     cdef NppStatus nppiNV12ToRGB_709HDTV_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
-    cdef NppStatus nppiNV12ToBGR_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
+    cdef NppStatus nppiNV12ToBGR_709CSC_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
     cdef NppStatus nppiNV12ToBGR_709HDTV_8u_P2C3R(const Npp8u* const pSrc[2], int rSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI)
 
     cdef NppStatus nppiRGBToYCbCr420_8u_C3P3R(const Npp8u* pSrc, int nSrcStep, Npp8u* pDst[3], int rDstStep[3], NppiSize oSizeROI)
