@@ -68,7 +68,7 @@ def init_hwcontext(CodecContext codec_context, int device):
         codec_context.pix_fmt = "cuda"
 
 
-def to_tensor(frame: VideoFrame, device: int, pix_fmt: str = "rgb24") -> torch.Tensor:
+def to_tensor(frame: VideoFrame, device: int, format: str = "rgb24") -> torch.Tensor:
     if frame.format.name != "cuda":
         raise ValueError(f"Input frame must be in CUDA format, got {frame.format.name}.")
 
@@ -86,7 +86,7 @@ def to_tensor(frame: VideoFrame, device: int, pix_fmt: str = "rgb24") -> torch.T
 
     cdef cuda.NppStatus status
     with nogil:
-        if pix_fmt == "rgb24":
+        if format == "rgb24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
                 status = cuda.nppiNV12ToRGB_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
             else:
@@ -104,7 +104,7 @@ def to_tensor(frame: VideoFrame, device: int, pix_fmt: str = "rgb24") -> torch.T
     return tensor
 
 
-def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, pix_fmt: str = "rgb24") -> VideoFrame:
+def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, format: str = "rgb24") -> VideoFrame:
     cdef cuda.CUdeviceptr tensor_data_ptr = tensor.data_ptr()
     cdef const cuda.Npp8u* src = <cuda.Npp8u*> tensor_data_ptr
     cdef int src_pitch = tensor.stride(0)
@@ -129,12 +129,12 @@ def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, pix_fmt: str 
 
     cdef cuda.NppStatus status
     with nogil:
-        if pix_fmt == "rgb24":
+        if format == "rgb24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
                 status = cuda.nppiRGBToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
             else:
                 status = cuda.nppiRGBToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
-        elif pix_fmt == "bgr24":
+        elif format == "bgr24":
             if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
                 status = cuda.nppiBGRToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
             else:

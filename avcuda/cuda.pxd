@@ -1,5 +1,6 @@
 from libc.stdint cimport uint8_t
 
+
 ctypedef unsigned long long CUdeviceptr
 
 cdef extern from "npp.h" nogil:

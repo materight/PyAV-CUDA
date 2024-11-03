@@ -41,7 +41,6 @@ cdef extern from "libavutil/hwcontext.h" nogil:
     cdef int av_hwframe_get_buffer(AVBufferRef* hwframe_ctx, libav.AVFrame *frame, int flags)
 
 
-
 cdef extern from "libavcodec/avcodec.h" nogil:
         
     cdef struct AVCodecContext:
