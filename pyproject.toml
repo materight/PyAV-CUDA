@@ -14,7 +14,7 @@ classifiers = [
 dependencies = [
   "av>=12.3.0",
   "torch",
-  "nvidia-npp-cu12",
+  #"nvidia-npp-cu12",
 ]
 
 [project.urls]
