@@ -22,7 +22,7 @@ def main() -> None:
         options["rtsp_transport"] = "tcp"
 
     # Test GPU decoding
-    print("Running GPU decoding...", end=" ", flush=True)
+    print(f"Running GPU decoding {N_RUNS} times...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
 
     for i in range(N_RUNS):
@@ -43,7 +43,7 @@ def main() -> None:
     print(f"took {gpu_elapsed:.2f}s")
 
     # Test CPU decoding
-    print("Running CPU decoding...", end=" ", flush=True)
+    print(f"Running CPU decoding {N_RUNS} times...", end=" ", flush=True)
     cpu_start_time = time.perf_counter()
 
     for i in range(N_RUNS):

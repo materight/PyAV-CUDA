@@ -22,7 +22,7 @@ def main() -> None:
         frames_cpu = [frame.to_ndarray(format="rgb24") for frame in container.decode(stream)]
 
     # Test GPU encoding
-    print("Running GPU encoding...", end=" ", flush=True)
+    print(f"Running GPU encoding {N_RUNS} times...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
 
     for _ in range(N_RUNS):
@@ -44,7 +44,7 @@ def main() -> None:
     print(f"took {gpu_elapsed:.2f}s")
 
     # Test CPU encoding
-    print("Running CPU encoding...", end=" ", flush=True)
+    print(f"Running CPU encoding {N_RUNS} times...", end=" ", flush=True)
     cpu_start_time = time.perf_counter()
 
     for _ in range(N_RUNS):

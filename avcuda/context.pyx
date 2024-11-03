@@ -9,6 +9,8 @@ from avcuda cimport libavhw, cuda
 from avcuda.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext, AVHWFramesContext
 
 
+cdef int AV_CUDA_USE_CURRENT_CONTEXT = 2  # From libavutil/hwcontext_cuda.h
+
 cdef class HWDeviceContext:
     cdef AVBufferRef* ptr
 
@@ -24,7 +26,7 @@ cdef class HWDeviceContext:
             libavhw.AV_HWDEVICE_TYPE_CUDA,
             str(device).encode(),
             NULL,
-            libavhw.AV_CUDA_USE_CURRENT_CONTEXT,
+            AV_CUDA_USE_CURRENT_CONTEXT,
         )
         if err < 0:
             raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")
@@ -66,52 +68,81 @@ def init_hwcontext(CodecContext codec_context, int device):
         codec_context.pix_fmt = "cuda"
 
 
-def to_tensor(frame: VideoFrame, device: int) -> torch.Tensor:
+def to_tensor(frame: VideoFrame, device: int, format: str = "rgb24") -> torch.Tensor:
     if frame.format.name != "cuda":
         raise ValueError(f"Input frame must be in CUDA format, got {frame.format.name}.")
+
+    cdef const cuda.Npp8u* src[2]
+    src[0] = <cuda.Npp8u *> frame.ptr.data[0]
+    src[1] = <cuda.Npp8u *> frame.ptr.data[1]
+    cdef int src_pitch = frame.ptr.linesize[0]
+
     tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', device))
-    cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
+    cdef cuda.CUdeviceptr tensor_data_ptr = tensor.data_ptr()
+    cdef cuda.Npp8u* dst = <cuda.Npp8u*> tensor_data_ptr
+    cdef int dst_pitch = tensor.stride(0)
+
+    cdef cuda.NppiSize roi = cuda.NppiSize(frame.ptr.width, frame.ptr.height)
+
+    cdef cuda.NppStatus status
     with nogil:
-        err = cuda.NV12ToRGB(
-            <uint8_t*> frame.ptr.data[0],
-            <uint8_t*> frame.ptr.data[1],
-            <uint8_t*> tensor_ptr,
-            frame.ptr.height,
-            frame.ptr.width,
-            frame.ptr.linesize[0],
-            frame.ptr.linesize[1],
-            (frame.ptr.color_range == libav.AVCOL_RANGE_JPEG), # Use full color range for yuvj420p format
-        )
-        if err != cuda.cudaSuccess:
-            raise RuntimeError(f"Failed to decode CUDA frame: {cuda.cudaGetErrorString(err).decode('utf-8')}.")
+        if format == "rgb24":
+            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
+                status = cuda.nppiNV12ToRGB_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+            else:
+                status = cuda.nppiNV12ToRGB_709CSC_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+        elif format == "bgr24":
+            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
+                status = cuda.nppiNV12ToBGR_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+            else:
+                status = cuda.nppiNV12ToBGR_709CSC_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
+        else:
+            status = cuda.NPP_ERROR
+    if status != cuda.NPP_NO_ERROR:
+        raise RuntimeError(f"Failed to convert frame to tensor: {status}.")
+
     return tensor
 
 
-def from_tensor(tensor: torch.Tensor, CodecContext codec_context) -> VideoFrame:
-    cdef cuda.CUdeviceptr tensor_ptr = tensor.data_ptr()
-    cdef int height = tensor.shape[0]
-    cdef int width = tensor.shape[1]
-    frame = VideoFrame(0, 0, format="cuda") # Allocate an empty frame with the final format
-    with nogil:
-        frame.ptr = libav.av_frame_alloc()
-        frame.ptr.height = height
-        frame.ptr.width = width
-        frame.ptr.format = libavhw.AV_PIX_FMT_CUDA
-        err = libavhw.av_hwframe_get_buffer((<AVCodecContext*> codec_context.ptr).hw_frames_ctx, frame.ptr, 0)
-        if err < 0:
-            raise RuntimeError(f"Failed to allocate CUDA frame: {libav.av_err2str(err).decode('utf-8')}.")
+def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, format: str = "rgb24") -> VideoFrame:
+    cdef cuda.CUdeviceptr tensor_data_ptr = tensor.data_ptr()
+    cdef const cuda.Npp8u* src = <cuda.Npp8u*> tensor_data_ptr
+    cdef int src_pitch = tensor.stride(0)
 
-        err_cuda = cuda.RGBToNV12(
-            <uint8_t*> tensor_ptr,
-            <uint8_t*> frame.ptr.data[0],
-            <uint8_t*> frame.ptr.data[1],
-            <uint8_t*> frame.ptr.data[2],
-            frame.ptr.height,
-            frame.ptr.width,
-            frame.ptr.linesize[0],
-            frame.ptr.linesize[1],
-        )
-        if err != cuda.cudaSuccess:
-            raise RuntimeError(f"Failed to encode CUDA frame: {cuda.cudaGetErrorString(err_cuda).decode('utf-8')}.")
+    # Allocate an empty frame with the final format
+    cdef VideoFrame frame = VideoFrame(0, 0, format="cuda")
+    frame.ptr = libav.av_frame_alloc()
+    frame.ptr.height = tensor.shape[0]
+    frame.ptr.width = tensor.shape[1]
+    frame.ptr.format = libavhw.AV_PIX_FMT_CUDA
+    err = libavhw.av_hwframe_get_buffer((<AVCodecContext*> codec_context.ptr).hw_frames_ctx, frame.ptr, 0)
+    if err < 0:
+        raise RuntimeError(f"Failed to allocate CUDA frame: {libav.av_err2str(err).decode('utf-8')}.")
+
+    cdef cuda.Npp8u* dst[3]
+    dst[0] = <cuda.Npp8u *> frame.ptr.data[0]
+    dst[1] = <cuda.Npp8u *> frame.ptr.data[1]
+    dst[2] = <cuda.Npp8u *> frame.ptr.data[2]
+    cdef int[3] dst_pitch = [frame.ptr.linesize[0], frame.ptr.linesize[1], frame.ptr.linesize[2]]
+
+    cdef cuda.NppiSize roi = cuda.NppiSize(frame.ptr.width, frame.ptr.height)
+
+    cdef cuda.NppStatus status
+    with nogil:
+        if format == "rgb24":
+            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
+                status = cuda.nppiRGBToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+            else:
+                status = cuda.nppiRGBToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+        elif format == "bgr24":
+            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
+                status = cuda.nppiBGRToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+            else:
+                status = cuda.nppiBGRToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
+        else:
+            status = cuda.NPP_ERROR
+    if status != cuda.NPP_NO_ERROR:
+        raise RuntimeError(f"Failed to convert tensor to frame: {status}.")
+
     frame._init_user_attributes() # Update frame's internal attributes
     return frame
