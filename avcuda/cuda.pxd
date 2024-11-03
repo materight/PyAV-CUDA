@@ -2,8 +2,6 @@ from libc.stdint cimport uint8_t
 
 ctypedef unsigned long long CUdeviceptr
 
-
-
 cdef extern from "npp.h" nogil:
     ctypedef enum NppStatus:
         NPP_NO_ERROR = 0
