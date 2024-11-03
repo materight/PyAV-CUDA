@@ -9,6 +9,8 @@ from avcuda cimport libavhw, cuda
 from avcuda.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext, AVHWFramesContext
 
 
+cdef int AV_CUDA_USE_CURRENT_CONTEXT = 2  # From libavutil/hwcontext_cuda.h
+
 cdef class HWDeviceContext:
     cdef AVBufferRef* ptr
 
@@ -24,7 +26,7 @@ cdef class HWDeviceContext:
             libavhw.AV_HWDEVICE_TYPE_CUDA,
             str(device).encode(),
             NULL,
-            libavhw.AV_CUDA_USE_CURRENT_CONTEXT,
+            AV_CUDA_USE_CURRENT_CONTEXT,
         )
         if err < 0:
             raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")

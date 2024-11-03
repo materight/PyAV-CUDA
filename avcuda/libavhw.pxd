@@ -26,16 +26,7 @@ cdef extern from "libavutil/hwcontext.h" nogil:
 
     enum AVHWDeviceType:
         AV_HWDEVICE_TYPE_NONE
-        AV_HWDEVICE_TYPE_VDPAU
         AV_HWDEVICE_TYPE_CUDA
-        AV_HWDEVICE_TYPE_VAAPI
-        AV_HWDEVICE_TYPE_DXVA2
-        AV_HWDEVICE_TYPE_QSV
-        AV_HWDEVICE_TYPE_VIDEOTOOLBOX
-        AV_HWDEVICE_TYPE_D3D11VA
-        AV_HWDEVICE_TYPE_DRM
-        AV_HWDEVICE_TYPE_OPENCL
-        AV_HWDEVICE_TYPE_MEDIACODEC
 
     cdef struct AVHWFramesContext:
         AVPixelFormat format
@@ -49,9 +40,6 @@ cdef extern from "libavutil/hwcontext.h" nogil:
     cdef int av_hwframe_ctx_init(AVBufferRef *ref)
     cdef int av_hwframe_get_buffer(AVBufferRef* hwframe_ctx, libav.AVFrame *frame, int flags)
 
-
-cdef extern from "libavutil/hwcontext_cuda.h" nogil:
-    cdef int AV_CUDA_USE_CURRENT_CONTEXT
 
 
 cdef extern from "libavcodec/avcodec.h" nogil:
