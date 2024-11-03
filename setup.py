@@ -46,6 +46,20 @@ def get_include_dirs():
         args.libraries.extend(["cudart", "nppicc"])
         args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
         args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
+
+        # Try to load CUDA libraries from the nvidia-* packages if available
+        try:
+            import nvidia
+
+            nvidia_dir = Path(nvidia.__file__).parent
+            for pkg_dir in nvidia_dir.iterdir():
+                if pkg_dir.is_dir():
+                    if (include_dir := pkg_dir / "include").exists():
+                        args.include_dirs.append(str(include_dir))
+                    if (lib_dir := pkg_dir / "lib").exists():
+                        args.library_dirs.append(str(lib_dir))
+        except ImportError:
+            pass
     elif not SKIP_LIBS_CHECKS:
         raise RuntimeError("Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
     return args
