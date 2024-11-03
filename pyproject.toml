@@ -12,7 +12,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "av>=2.3.0",
+  "av>=12.3.0",
   "torch",
 ]
 
@@ -21,5 +21,5 @@ Homepage = "https://github.com/materight/PyAV-CUDA.git"
 Repository = "https://github.com/materight/PyAV-CUDA.git"
 
 [build-system]
-requires = ["setuptools", "cython", "av>=2.3.0"]
+requires = ["setuptools", "cython", "av>=12.3.0"]
 build-backend = "setuptools.build_meta"
