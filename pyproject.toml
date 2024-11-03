@@ -14,6 +14,7 @@ classifiers = [
 dependencies = [
   "av>=12.3.0",
   "torch",
+  "nvidia-npp-cu12",
 ]
 
 [project.urls]
@@ -21,5 +22,11 @@ Homepage = "https://github.com/materight/PyAV-CUDA.git"
 Repository = "https://github.com/materight/PyAV-CUDA.git"
 
 [build-system]
-requires = ["setuptools", "cython", "av>=12.3.0"]
+requires = [
+  "setuptools",
+  "cython",
+  "av>=12.3.0",
+  "nvidia-cuda-nvcc-cu12",
+  "nvidia-npp-cu12",
+]
 build-backend = "setuptools.build_meta"
