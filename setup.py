@@ -57,6 +57,13 @@ def get_include_dirs():
                     if (include_dir := pkg_dir / "include").exists():
                         args.include_dirs.append(str(include_dir))
                     if (lib_dir := pkg_dir / "lib").exists():
+                        # Add missing symlinks
+                        for lib in lib_dir.iterdir():
+                            if lib.is_file() and ".so." in str(lib):
+                                target_name = lib.name.split(".so.")[0] + ".so"
+                                target = lib_dir / target_name
+                                if not target.exists():
+                                    lib.symlink_to(lib_dir / lib.name)
                         args.library_dirs.append(str(lib_dir))
         except ImportError:
             pass
