@@ -24,7 +24,7 @@ Repository = "https://github.com/materight/PyAV-CUDA.git"
 [build-system]
 requires = [
   "setuptools",
-  "cython",
+  "cython~=3.0",
   "av>=12.3.0",
   "nvidia-cuda-nvcc-cu12",
   "nvidia-cuda-runtime-cu12",
