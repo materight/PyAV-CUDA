@@ -60,7 +60,7 @@ def init_hwcontext(CodecContext codec_context, int device):
         frames_ctx.sw_format = ctx.sw_pix_fmt
         frames_ctx.width = ctx.width
         frames_ctx.height = ctx.height
-        frames_ctx.initial_pool_size = 5
+        frames_ctx.initial_pool_size = 3
 
         err = libavhw.av_hwframe_ctx_init(ctx.hw_frames_ctx)
         if err < 0:
