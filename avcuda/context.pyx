@@ -81,7 +81,7 @@ def to_tensor(frame: VideoFrame, device: int = 0, format: str = "rgb24") -> torc
     cdef const Npp8u* src[2]
     src[0] = <Npp8u*> frame.ptr.data[0]
     src[1] = <Npp8u*> frame.ptr.data[1]
-    cdef int src_pitch = frame.ptr.linesize[0]
+    cdef int[2] src_pitch = [frame.ptr.linesize[0], frame.ptr.linesize[1]]
 
     tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', device))
     cdef CUdeviceptr tensor_data_ptr = tensor.data_ptr()
@@ -91,6 +91,7 @@ def to_tensor(frame: VideoFrame, device: int = 0, format: str = "rgb24") -> torc
     cdef NppiSize roi = NppiSize(frame.ptr.width, frame.ptr.height)
 
     cdef NppStreamContext npp_ctx = get_device_context(device).npp_ctx
+
     cdef NppStatus status
     with nogil:
         status = npp.cvtFromNV12(format, frame.ptr.color_range, src, src_pitch, dst, dst_pitch, roi, npp_ctx)
@@ -124,6 +125,7 @@ def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, format: str =
     cdef NppiSize roi = NppiSize(frame.ptr.width, frame.ptr.height)
 
     cdef NppStreamContext npp_ctx = get_device_context(tensor.device.index).npp_ctx
+
     cdef NppStatus status
     with nogil:
         status = npp.cvtToNV12(format, frame.ptr.color_range, src, src_pitch, dst, dst_pitch, roi, npp_ctx)

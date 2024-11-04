@@ -35,5 +35,5 @@ cdef extern from "npp.h" nogil:
 
 
 cdef NppStatus initNppStreamContext(NppStreamContext *nppStreamCtx) noexcept nogil
-cdef NppStatus cvtFromNV12(str format, int colorRange, const Npp8u *const pSrc[2], int aSrcStep, Npp8u *pDst, int nDstStep, NppiSize oSizeROI, NppStreamContext nppStreamCtx) noexcept nogil
+cdef NppStatus cvtFromNV12(str format, int colorRange, const Npp8u *const pSrc[2], int aSrcStep[2], Npp8u *pDst, int nDstStep, NppiSize oSizeROI, NppStreamContext nppStreamCtx) noexcept nogil
 cdef NppStatus cvtToNV12(str format, int colorRange, const Npp8u *pSrc, int nSrcStep, Npp8u *pDst[3], int rDstStep[3], NppiSize oSizeROI, NppStreamContext nppStreamCtx) noexcept nogil
