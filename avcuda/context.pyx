@@ -112,6 +112,7 @@ def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, format: str =
     frame.ptr.height = tensor.shape[0]
     frame.ptr.width = tensor.shape[1]
     frame.ptr.format = libavhw.AV_PIX_FMT_CUDA
+    frame.ptr.color_range = libav.AVCOL_RANGE_MPEG
     err = libavhw.av_hwframe_get_buffer((<AVCodecContext*> codec_context.ptr).hw_frames_ctx, frame.ptr, 0)
     if err < 0:
         raise RuntimeError(f"Failed to allocate CUDA frame: {libav.av_err2str(err).decode('utf-8')}.")
