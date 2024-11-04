@@ -40,35 +40,35 @@ def get_include_dirs():
             ) from e
     args, _ = parser.parse_known_args(raw_cflags.decode("utf-8").strip().split())
 
-    # Get CUDA libraries
+    # Try to load CUDA libraries from the nvidia-* packages if available
+    try:
+        import nvidia
+
+        nvidia_dir = Path(nvidia.__file__).parent
+        for pkg_dir in nvidia_dir.iterdir():
+            if pkg_dir.is_dir():
+                if (include_dir := pkg_dir / "include").exists():
+                    args.include_dirs.append(str(include_dir))
+                if (lib_dir := pkg_dir / "lib").exists():
+                    # Add missing symlinks
+                    for lib_path in lib_dir.iterdir():
+                        if lib_path.is_file() and ".so." in lib_path.name:
+                            symlink_name = lib_path.name.split(".so.")[0] + ".so"
+                            symlink_path = lib_dir / symlink_name
+                            if not symlink_path.exists():
+                                symlink_path.symlink_to(lib_path)
+                    args.library_dirs.append(str(lib_dir))
+                    args.runtime_library_dirs.append(str(lib_dir))
+    except ImportError:
+        pass
+
+    # Try to load CUDA libraries from the CUDA_HOME environment variable
     if CUDA_HOME:
         args.include_dirs.extend([str(Path(CUDA_HOME) / "include")])
         args.libraries.extend(["nppicc"])
         args.library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
         args.runtime_library_dirs.extend([str(Path(CUDA_HOME) / "lib64")])
 
-        # Try to load CUDA libraries from the nvidia-* packages if available
-        try:
-            import nvidia
-
-            nvidia_dir = Path(nvidia.__file__).parent
-            for pkg_dir in nvidia_dir.iterdir():
-                if pkg_dir.is_dir():
-                    if (include_dir := pkg_dir / "include").exists():
-                        args.include_dirs.append(str(include_dir))
-                    if (lib_dir := pkg_dir / "lib").exists():
-                        # Add missing symlinks
-                        for lib_path in lib_dir.iterdir():
-                            if lib_path.is_file() and ".so." in lib_path.name:
-                                symlink_name = lib_path.name.split(".so.")[0] + ".so"
-                                symlink_path = lib_dir / symlink_name
-                                if not symlink_path.exists():
-                                    symlink_path.symlink_to(lib_path)
-                        args.library_dirs.append(str(lib_dir))
-        except ImportError:
-            pass
-    elif not SKIP_LIBS_CHECKS:
-        raise RuntimeError("Couldn't find CUDA path. Please set $CUDA_HOME env variable.")
     return args
 
 

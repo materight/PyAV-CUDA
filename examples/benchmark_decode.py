@@ -21,6 +21,9 @@ def main() -> None:
         options["flags"] = "+low_delay"
         options["rtsp_transport"] = "tcp"
 
+    # Pre-initialize context to avoid measuring the initialization time
+    torch.cuda.init()
+
     # Test GPU decoding
     print(f"Running GPU decoding {N_RUNS} times...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()

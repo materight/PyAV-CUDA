@@ -21,6 +21,9 @@ def main() -> None:
         stream = container.streams.video[0]
         frames_cpu = [frame.to_ndarray(format="rgb24") for frame in container.decode(stream)]
 
+    # Pre-initialize context to avoid measuring the initialization time
+    torch.cuda.init()
+
     # Test GPU encoding
     print(f"Running GPU encoding {N_RUNS} times...", end=" ", flush=True)
     gpu_start_time = time.perf_counter()
