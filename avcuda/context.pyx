@@ -5,24 +5,26 @@ from av.codec.context cimport CodecContext
 from av.video.format cimport get_video_format
 import torch
 
-from avcuda cimport libavhw, cuda
+from avcuda cimport libavhw, npp
 from avcuda.libavhw cimport AVBufferRef, AVHWDeviceType, AVCodecContext, AVHWFramesContext
+from avcuda.npp cimport CUdeviceptr, NppStreamContext, initNppStreamContext, NppStatus, Npp8u, Npp32f, NppiSize
 
 
 cdef int AV_CUDA_USE_CURRENT_CONTEXT = 2  # From libavutil/hwcontext_cuda.h
 
 cdef class HWDeviceContext:
-    cdef AVBufferRef* ptr
+    cdef AVBufferRef* hwdevice_ctx
+    cdef NppStreamContext npp_ctx
 
     def __cinit__(self, int device):
-        self.ptr = NULL
+        self.hwdevice_ctx = NULL
 
         # Since we are re-using the pytorch context, we need to ensure that the CUDA context is initialized
         torch.cuda.init()
         torch.cuda.synchronize()
 
         err = libavhw.av_hwdevice_ctx_create(
-            &self.ptr,
+            &self.hwdevice_ctx,
             libavhw.AV_HWDEVICE_TYPE_CUDA,
             str(device).encode(),
             NULL,
@@ -30,6 +32,10 @@ cdef class HWDeviceContext:
         )
         if err < 0:
             raise RuntimeError(f"Failed to create specified HW device. {libav.av_err2str(err).decode('utf-8')}.")
+
+        err = initNppStreamContext(&self.npp_ctx)
+        if err != npp.NPP_SUCCESS:
+            raise RuntimeError(f"Failed to get NPP stream context: {err}.")
 
 
 cdef dict[int, HWDeviceContext] device_contexts = {}
@@ -40,8 +46,8 @@ cdef HWDeviceContext get_device_context(int device):
     return device_contexts[device]
 
 
-def init_hwcontext(CodecContext codec_context, int device):
-    cdef AVBufferRef* hw_device_ctx = get_device_context(device).ptr
+def init_hwcontext(codec_context: CodecContext, device: int = 0):
+    cdef AVBufferRef* hw_device_ctx = get_device_context(device).hwdevice_ctx
 
     cdef AVCodecContext* ctx = <AVCodecContext*> codec_context.ptr
     ctx.hw_device_ctx = libavhw.av_buffer_ref(hw_device_ctx)
@@ -68,45 +74,35 @@ def init_hwcontext(CodecContext codec_context, int device):
         codec_context.pix_fmt = "cuda"
 
 
-def to_tensor(frame: VideoFrame, device: int, format: str = "rgb24") -> torch.Tensor:
+def to_tensor(frame: VideoFrame, device: int = 0, format: str = "rgb24") -> torch.Tensor:
     if frame.format.name != "cuda":
         raise ValueError(f"Input frame must be in CUDA format, got {frame.format.name}.")
 
-    cdef const cuda.Npp8u* src[2]
-    src[0] = <cuda.Npp8u *> frame.ptr.data[0]
-    src[1] = <cuda.Npp8u *> frame.ptr.data[1]
+    cdef const Npp8u* src[2]
+    src[0] = <Npp8u*> frame.ptr.data[0]
+    src[1] = <Npp8u*> frame.ptr.data[1]
     cdef int src_pitch = frame.ptr.linesize[0]
 
     tensor = torch.empty((frame.ptr.height, frame.ptr.width, 3), dtype=torch.uint8, device=torch.device('cuda', device))
-    cdef cuda.CUdeviceptr tensor_data_ptr = tensor.data_ptr()
-    cdef cuda.Npp8u* dst = <cuda.Npp8u*> tensor_data_ptr
+    cdef CUdeviceptr tensor_data_ptr = tensor.data_ptr()
+    cdef Npp8u* dst = <Npp8u*> tensor_data_ptr
     cdef int dst_pitch = tensor.stride(0)
 
-    cdef cuda.NppiSize roi = cuda.NppiSize(frame.ptr.width, frame.ptr.height)
+    cdef NppiSize roi = NppiSize(frame.ptr.width, frame.ptr.height)
 
-    cdef cuda.NppStatus status
+    cdef NppStreamContext npp_ctx = get_device_context(device).npp_ctx
+    cdef NppStatus status
     with nogil:
-        if format == "rgb24":
-            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                status = cuda.nppiNV12ToRGB_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
-            else:
-                status = cuda.nppiNV12ToRGB_709CSC_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
-        elif format == "bgr24":
-            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                status = cuda.nppiNV12ToBGR_709HDTV_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
-            else:
-                status = cuda.nppiNV12ToBGR_709CSC_8u_P2C3R(src, src_pitch, dst, dst_pitch, roi)
-        else:
-            status = cuda.NPP_ERROR
-    if status != cuda.NPP_NO_ERROR:
+        status = npp.cvtFromNV12(format, frame.ptr.color_range, src, src_pitch, dst, dst_pitch, roi, npp_ctx)
+    if status != npp.NPP_SUCCESS:
         raise RuntimeError(f"Failed to convert frame to tensor: {status}.")
 
     return tensor
 
 
 def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, format: str = "rgb24") -> VideoFrame:
-    cdef cuda.CUdeviceptr tensor_data_ptr = tensor.data_ptr()
-    cdef const cuda.Npp8u* src = <cuda.Npp8u*> tensor_data_ptr
+    cdef CUdeviceptr tensor_data_ptr = tensor.data_ptr()
+    cdef const Npp8u* src = <Npp8u*> tensor_data_ptr
     cdef int src_pitch = tensor.stride(0)
 
     # Allocate an empty frame with the final format
@@ -119,29 +115,19 @@ def from_tensor(tensor: torch.Tensor, codec_context: CodecContext, format: str =
     if err < 0:
         raise RuntimeError(f"Failed to allocate CUDA frame: {libav.av_err2str(err).decode('utf-8')}.")
 
-    cdef cuda.Npp8u* dst[3]
-    dst[0] = <cuda.Npp8u *> frame.ptr.data[0]
-    dst[1] = <cuda.Npp8u *> frame.ptr.data[1]
-    dst[2] = <cuda.Npp8u *> frame.ptr.data[2]
+    cdef Npp8u* dst[3]
+    dst[0] = <Npp8u*> frame.ptr.data[0]
+    dst[1] = <Npp8u*> frame.ptr.data[1]
+    dst[2] = <Npp8u*> frame.ptr.data[2]
     cdef int[3] dst_pitch = [frame.ptr.linesize[0], frame.ptr.linesize[1], frame.ptr.linesize[2]]
 
-    cdef cuda.NppiSize roi = cuda.NppiSize(frame.ptr.width, frame.ptr.height)
+    cdef NppiSize roi = NppiSize(frame.ptr.width, frame.ptr.height)
 
-    cdef cuda.NppStatus status
+    cdef NppStreamContext npp_ctx = get_device_context(tensor.device.index).npp_ctx
+    cdef NppStatus status
     with nogil:
-        if format == "rgb24":
-            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                status = cuda.nppiRGBToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
-            else:
-                status = cuda.nppiRGBToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
-        elif format == "bgr24":
-            if frame.ptr.color_range == libav.AVCOL_RANGE_JPEG:
-                status = cuda.nppiBGRToYCbCr420_JPEG_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
-            else:
-                status = cuda.nppiBGRToYCbCr420_8u_C3P3R(src, src_pitch, dst, dst_pitch, roi)
-        else:
-            status = cuda.NPP_ERROR
-    if status != cuda.NPP_NO_ERROR:
+        status = npp.cvtToNV12(format, frame.ptr.color_range, src, src_pitch, dst, dst_pitch, roi, npp_ctx)
+    if status != npp.NPP_NO_ERROR:
         raise RuntimeError(f"Failed to convert tensor to frame: {status}.")
 
     frame._init_user_attributes() # Update frame's internal attributes
