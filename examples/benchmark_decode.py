@@ -35,7 +35,7 @@ def main() -> None:
             avcuda.init_hwcontext(stream.codec_context, DEVICE.index)
 
             for frame_idx, frame in enumerate(container.decode(stream)):
-                frame_tensor = avcuda.to_tensor(frame, DEVICE.index)
+                frame_tensor = avcuda.to_tensor(frame, DEVICE.index, format="rgb24")
 
                 if i == 0 and frame_idx == 0:
                     img = cv2.cvtColor(frame_tensor.cpu().numpy(), cv2.COLOR_RGB2BGR)
