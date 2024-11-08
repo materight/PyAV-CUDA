@@ -14,6 +14,7 @@ classifiers = [
 dependencies = [
   "av>=12.3.0",
   "torch",
+  "nvidia-npp-cu12==12.3.1.54",
 ]
 
 [project.urls]
@@ -25,7 +26,7 @@ requires = [
   "setuptools",
   "cython",
   "av==12.3.0", # Minimum supported av version
-  "nvidia-npp-cu12",
+  "nvidia-npp-cu12==12.3.1.54",
   "nvidia-cuda-nvcc-cu12",
   "nvidia-cuda-runtime-cu12",
 ]
